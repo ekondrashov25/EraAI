@@ -12,7 +12,33 @@ body {
     padding: 0;
 }
 
-/* Base styles for all screen sizes */
+/* Mobile-first base styles */
+.chat-container {
+    background: #1a1a2e;
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* Ensure no horizontal overflow on mobile */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #1E3A8A 0%, #38BDF8 100%);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
 
 .header {
     background: linear-gradient(135deg, #1E3A8A 0%, #38BDF8 100%);
@@ -127,23 +153,29 @@ body {
 
 .messages {
     flex: 1;
-    padding: 20px;
+    padding: 15px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 15px;
     background: #1a1a2e;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .message {
     max-width: 85%;
-    padding: 15px 18px;
-    border-radius: 20px;
+    padding: 12px 16px;
+    border-radius: 18px;
     word-wrap: break-word;
+    word-break: break-word;
     animation: fadeIn 0.5s ease-out;
     position: relative;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
 }
 
 .message-content {
@@ -524,7 +556,9 @@ body {
 .quick-actions-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .quick-action-btn {
@@ -840,6 +874,9 @@ body {
     background: #2d2d44;
     border-top: 1px solid #4a4a6a;
     animation: fadeInUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .quick-actions-header {
@@ -948,9 +985,11 @@ body {
 }
 
 .quick-actions-content {
-    padding: 0 20px 15px 20px;
+    padding: 0 15px 15px 15px;
     animation: slideDown 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Enhanced Quick Action Buttons */
@@ -1210,23 +1249,27 @@ body {
 .input-container {
     background: #2d2d44;
     border-top: 1px solid #4a4a6a;
-    padding: 15px 20px;
+    padding: 12px 15px;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     animation: fadeInUp 0.5s ease-out;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 #message-input {
     flex: 1;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 25px;
-    padding: 12px 20px;
+    border-radius: 20px;
+    padding: 10px 16px;
     color: white;
     font-size: 14px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 #message-input:focus {
@@ -1249,8 +1292,8 @@ body {
     background: linear-gradient(135deg, #3B82F6, #8B5CF6);
     border: none;
     color: white;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -1259,6 +1302,7 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 #send-button::before, #stop-button::before {
