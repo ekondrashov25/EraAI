@@ -255,6 +255,107 @@ async def clear_conversation_history():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/related_questions")
+async def get_related_questions():
+    """Generate related questions based on conversation context."""
+    if assistant is None:
+        raise HTTPException(status_code=500, detail="AI Assistant not initialized")
+    
+    try:
+        # Get conversation history to analyze context
+        history = assistant.get_conversation_history()
+        
+        if len(history) < 2:  # Need at least one user message and one assistant response
+            # Return default questions if no conversation yet
+            default_questions = [
+                "Анализ BTC",
+                "Обзор рынка",
+                "Торговые идеи",
+                "Что такое DeFi"
+            ]
+            return {
+                "result": {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "default_questions",
+                            "questions": default_questions
+                        }
+                    ]
+                }
+            }
+        
+        # Generate related questions based on conversation context
+        # Use the last few messages to understand the context
+        recent_messages = history[-4:]  # Last 4 messages (2 exchanges)
+        context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in recent_messages])
+        
+        # Create a prompt to generate related questions
+        prompt = f"""
+        Based on this conversation context, generate 4 short related questions that the user might want to ask next.
+        Focus on crypto, trading, and economic topics. Keep each question under 40 characters for mobile display.
+        Make questions specific and actionable but concise. Do not give the same question twice. Do not give anything except questions.
+        
+        Context:
+        {context}
+        
+        Generate exactly 4 SHORT questions, one per line, in Russian:
+        """
+        
+        # Use the assistant to generate related questions
+        result = await assistant.chat(
+            user_message=prompt,
+            use_rag=False,  # Don't use RAG for this
+            use_functions=False,  # Don't use functions for this
+            temperature=0.7,
+            translate_queries=False
+        )
+        
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result.get("error", "Unknown error"))
+        
+        # Parse the response to extract questions
+        response_text = result["response"]
+        questions = []
+        
+        # Split by lines and clean up
+        lines = response_text.strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            # Remove numbering if present (1., 2., etc.)
+            if line and any(char.isdigit() for char in line[:3]):
+                line = line.split('.', 1)[-1].strip()
+            if line and line not in questions:
+                questions.append(line)
+        
+        # Ensure we have exactly 4 questions, pad with defaults if needed
+        default_questions = [
+            "Анализ BTC",
+            "Обзор рынка", 
+            "Торговые идеи",
+            "Что такое DeFi"
+        ]
+        
+        while len(questions) < 4:
+            questions.append(default_questions[len(questions)])
+        
+        questions = questions[:4]  # Limit to 4 questions
+        
+        return {
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "related_questions",
+                        "questions": questions
+                    }
+                ]
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     logging.info("🌐 Starting MCP AI Assistant Web API (Direct)...")
     logging.info("📖 API Documentation: http://localhost:8000/docs")

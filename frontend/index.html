@@ -29,9 +29,14 @@
         <div class="quick-actions" id="quick-actions">
             <div class="quick-actions-header" onclick="toggleQuickActions()">
                 <h3>Quick Actions</h3>
-                <button class="toggle-btn" id="toggle-quick-actions" onclick="toggleQuickActions(event)">
-                    <span class="toggle-icon">▼</span>
-                </button>
+                <div class="quick-actions-controls">
+                    <button class="mode-toggle-btn" id="mode-toggle-btn" onclick="toggleMode(event)" style="display: none;">
+                        <span class="mode-toggle-text">Quick Actions</span>
+                    </button>
+                    <button class="toggle-btn" id="toggle-quick-actions" onclick="toggleQuickActions(event)">
+                        <span class="toggle-icon">▼</span>
+                    </button>
+                </div>
             </div>
             <div class="quick-actions-content" id="quick-actions-content">
                 <div class="quick-actions-grid">

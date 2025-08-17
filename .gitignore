@@ -356,3 +356,5 @@ datasets/
 # mcp_config.json
 # openai_config.json
 # database_config.json
+
+pdfs/

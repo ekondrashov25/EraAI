@@ -3,6 +3,12 @@ let isConnected = false;
 let isGenerating = false;
 let currentGenerationController = null;
 
+// Conversation state tracking
+let conversationStarted = false;
+let relatedQuestions = [];
+let isShowingRelatedQuestions = false;
+let currentQuestionIndex = 0;
+
 // Enhanced markdown parser for better formatting
 function parseMarkdown(text) {
     // Handle code blocks with language specification (```language code```)
@@ -280,7 +286,149 @@ function quickAction(action) {
     sendMessage();
 }
 
+async function fetchRelatedQuestions() {
+    try {
+        const response = await fetch(`${API_BASE}/related_questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error('Error fetching related questions:', data.error);
+            return null;
+        } else if (data.result && data.result.content) {
+            const content = data.result.content[0];
+            if (content.text === 'related_questions' || content.text === 'default_questions') {
+                return content.questions || [];
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Failed to fetch related questions:', error);
+        return null;
+    }
+}
 
+function updateQuickActionsDisplay() {
+    const quickActionsContent = document.getElementById('quick-actions-content');
+    const quickActionsHeader = document.querySelector('.quick-actions-header h3');
+    const modeToggleBtn = document.getElementById('mode-toggle-btn');
+    const modeToggleText = modeToggleBtn.querySelector('.mode-toggle-text');
+    
+    // Check if panel is collapsed
+    const isPanelCollapsed = quickActionsContent.style.display === 'none';
+    
+    // Show/hide mode toggle button based on conversation state and panel visibility
+    if (conversationStarted && relatedQuestions.length > 0 && !isPanelCollapsed) {
+        modeToggleBtn.style.display = 'flex';
+    } else {
+        modeToggleBtn.style.display = 'none';
+        if (!conversationStarted || relatedQuestions.length === 0) {
+            isShowingRelatedQuestions = false;
+        }
+    }
+    
+    if (isShowingRelatedQuestions && relatedQuestions.length > 0) {
+        // Show related questions in compact carousel
+        quickActionsHeader.textContent = 'Related Questions';
+        modeToggleText.textContent = 'Show Quick Actions';
+        
+        console.log(`Displaying question ${currentQuestionIndex + 1} of ${relatedQuestions.length}`);
+        const currentQuestion = relatedQuestions[currentQuestionIndex];
+        const questionHTML = `
+            <div class="related-question-carousel">
+                <button class="carousel-arrow carousel-arrow-left" onclick="navigateQuestion(-1)" ${currentQuestionIndex === 0 ? 'disabled' : ''}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="related-question-btn-compact" onclick="quickAction('${currentQuestion.replace(/'/g, "\\'")}')">
+                    <div class="related-question-icon-compact">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="related-question-text-compact">${currentQuestion}</div>
+                    <div class="related-question-arrow-compact">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </button>
+                <button class="carousel-arrow carousel-arrow-right" onclick="navigateQuestion(1)" ${currentQuestionIndex === relatedQuestions.length - 1 ? 'disabled' : ''}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="carousel-indicators">
+                ${relatedQuestions.map((_, index) => `
+                    <div class="carousel-dot ${index === currentQuestionIndex ? 'active' : ''}" onclick="goToQuestion(${index})"></div>
+                `).join('')}
+            </div>
+        `;
+        
+        quickActionsContent.innerHTML = questionHTML;
+    } else {
+        // Show default quick actions
+        quickActionsHeader.textContent = 'Quick Actions';
+        if (conversationStarted && relatedQuestions.length > 0) {
+            modeToggleText.textContent = 'Show Related Questions';
+        }
+        
+        quickActionsContent.innerHTML = `
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="quickAction('Анализ BTC')">
+                    <div class="quick-action-icon" style="background: #10B981;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18 17V9M12 17V5M6 17v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Анализ BTC</div>
+                </button>
+                <button class="quick-action-btn" onclick="quickAction('Обзор рынка')">
+                    <div class="quick-action-icon" style="background: #3B82F6;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Обзор рынка</div>
+                </button>
+                <button class="quick-action-btn" onclick="quickAction('Торговые идеи')">
+                    <div class="quick-action-icon" style="background: #F59E0B;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Торговые идеи</div>
+                </button>
+                <button class="quick-action-btn" onclick="quickAction('Что такое DeFi')">
+                    <div class="quick-action-icon" style="background: #8B5CF6;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Что такое DeFi</div>
+                </button>
+            </div>
+        `;
+    }
+}
+
+function getQuestionColor(index) {
+    const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
+    return colors[index % colors.length];
+}
 
 async function sendMessage() {
     const input = document.getElementById('message-input');
@@ -293,6 +441,11 @@ async function sendMessage() {
     if (!message) {
         console.log('No message to send');
         return;
+    }
+    
+    // Track conversation state
+    if (!conversationStarted) {
+        conversationStarted = true;
     }
     
     // Set generation state
@@ -333,6 +486,21 @@ async function sendMessage() {
             const assistantMessage = data.result.content[0].text;
             hideLoading(); // Hide loading before starting typing animation
             await addMessage('assistant', assistantMessage, true); // Enable typing animation
+            
+            // Fetch related questions after assistant responds
+            if (conversationStarted) {
+                try {
+                    const questions = await fetchRelatedQuestions();
+                    if (questions && questions.length > 0) {
+                        relatedQuestions = questions;
+                        currentQuestionIndex = 0; // Reset to first question
+                        isShowingRelatedQuestions = true;
+                        updateQuickActionsDisplay();
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch related questions:', error);
+                }
+            }
         } else {
             hideLoading();
             addMessage('error', 'Unexpected response format');
@@ -402,15 +570,96 @@ function toggleQuickActions(event) {
     
     const content = document.getElementById('quick-actions-content');
     const toggleIcon = document.querySelector('.toggle-icon');
+    const modeToggleBtn = document.getElementById('mode-toggle-btn');
     const isHidden = content.style.display === 'none';
     
     if (isHidden) {
         content.style.display = 'block';
         toggleIcon.textContent = '▼';
         content.style.animation = 'slideDown 0.3s ease-out';
+        // Show mode toggle button if we have related questions
+        if (conversationStarted && relatedQuestions.length > 0) {
+            modeToggleBtn.style.display = 'flex';
+        }
     } else {
         content.style.display = 'none';
         toggleIcon.textContent = '▶';
+        // Hide mode toggle button when panel is collapsed
+        modeToggleBtn.style.display = 'none';
+    }
+}
+
+function toggleMode(event) {
+    // Prevent event bubbling
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const modeToggleBtn = document.getElementById('mode-toggle-btn');
+    const modeToggleText = modeToggleBtn.querySelector('.mode-toggle-text');
+    
+    if (isShowingRelatedQuestions) {
+        // Switch to quick actions
+        isShowingRelatedQuestions = false;
+        modeToggleText.textContent = 'Related Questions';
+        updateQuickActionsDisplay();
+    } else {
+        // Switch to related questions
+        isShowingRelatedQuestions = true;
+        modeToggleText.textContent = 'Quick Actions';
+        updateQuickActionsDisplay();
+    }
+}
+
+function navigateQuestion(direction) {
+    const newIndex = currentQuestionIndex + direction;
+    console.log(`Navigating: current=${currentQuestionIndex}, direction=${direction}, new=${newIndex}, total=${relatedQuestions.length}`);
+    if (newIndex >= 0 && newIndex < relatedQuestions.length) {
+        // Add smooth slide animation
+        const carousel = document.querySelector('.related-question-carousel');
+        if (carousel) {
+            carousel.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            // Use translateX for horizontal movement, direction determines left/right
+            carousel.style.transform = `translateX(${-direction * 100}%)`;
+            
+            setTimeout(() => {
+                currentQuestionIndex = newIndex;
+                updateQuickActionsDisplay();
+                carousel.style.transition = 'none';
+                carousel.style.transform = 'translateX(0)';
+                setTimeout(() => {
+                    carousel.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                }, 10);
+            }, 250);
+        } else {
+            currentQuestionIndex = newIndex;
+            updateQuickActionsDisplay();
+        }
+    }
+}
+
+function goToQuestion(index) {
+    if (index >= 0 && index < relatedQuestions.length && index !== currentQuestionIndex) {
+        const direction = index > currentQuestionIndex ? 1 : -1;
+        const carousel = document.querySelector('.related-question-carousel');
+        if (carousel) {
+            carousel.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            // Use translateX for horizontal movement
+            carousel.style.transform = `translateX(${-direction * 100}%)`;
+            
+            setTimeout(() => {
+                currentQuestionIndex = index;
+                updateQuickActionsDisplay();
+                carousel.style.transition = 'none';
+                carousel.style.transform = 'translateX(0)';
+                setTimeout(() => {
+                    carousel.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                }, 10);
+            }, 250);
+        } else {
+            currentQuestionIndex = index;
+            updateQuickActionsDisplay();
+        }
     }
 }
 
@@ -503,11 +752,17 @@ async function clearHistory() {
             alert(`Error: ${data.error.message || 'Unknown error'}`);
         } else {
             alert('History cleared successfully!');
+            // Reset conversation state
+            conversationStarted = false;
+            relatedQuestions = [];
+            isShowingRelatedQuestions = false;
+            currentQuestionIndex = 0;
+            
             // Clear the messages display
             document.getElementById('messages').innerHTML = `
                 <div class="message assistant">
                     <div class="message-content">
-                        Привет! Я - Эра, ваш личный Al-помощник по криптовалютам и экономике. Я всегда готова помочь вам с аналитикой токенов, генерированием торговых идей, объяснением принципов работы рынка и предоставлением знаний в области криптоэкономики. Задайте мне вопрос или воспользуйтесь подсказками Quick Actions.                    </div>
+                        Привет! Я - Эра, ваш личный AI-помощник по криптовалютам и экономике. Я всегда готова помочь вам с аналитикой токенов, генерированием торговых идей, объяснением принципов работы рынка и предоставлением знаний в области криптоэкономики. Задайте мне вопрос или воспользуйтесь подсказками Quick Actions.                    </div>
                     <div class="message-timestamp">${new Date().toLocaleTimeString('en-US', { 
                         hour: 'numeric', 
                         minute: '2-digit',
@@ -515,6 +770,9 @@ async function clearHistory() {
                     })}</div>
                 </div>
             `;
+            
+            // Reset quick actions to default
+            updateQuickActionsDisplay();
         }
     } catch (error) {
         alert('Failed to clear history. Check if the API is running.');
