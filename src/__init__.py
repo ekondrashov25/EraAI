@@ -1,0 +1,1 @@
+# MCP AI Assistant Package

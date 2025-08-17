@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP AI Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            <div class="header-icon">
+                <img src="icon.png" alt="Era AI" class="avatar-icon">
+            </div>
+            <div class="header-content">
+                <h1>Era AI</h1>
+                <p>Your crypto analyst, guide & market scout</p>
+            </div>
+        </div>
+        
+        <div class="messages" id="messages">
+            <div class="message assistant">
+                <div class="message-content">
+                    Привет! Я - Эра, ваш личный Al-помощник по криптовалютам и экономике. Я всегда готова помочь вам с аналитикой токенов, генерированием торговых идей, объяснением принципов работы рынка и предоставлением знаний в области криптоэкономики. Задайте мне вопрос или воспользуйтесь подсказками Quick Actions.                </div>
+                <div class="message-timestamp" id="initial-timestamp"></div>
+            </div>
+        </div>
+        
+        <div class="quick-actions" id="quick-actions">
+            <div class="quick-actions-header" onclick="toggleQuickActions()">
+                <h3>Quick Actions</h3>
+                <button class="toggle-btn" id="toggle-quick-actions" onclick="toggleQuickActions(event)">
+                    <span class="toggle-icon">▼</span>
+                </button>
+            </div>
+            <div class="quick-actions-content" id="quick-actions-content">
+                <div class="quick-actions-grid">
+                    <button class="quick-action-btn" onclick="quickAction('Анализ тренда BTC')">
+                        <div class="quick-action-icon" style="background: #10B981;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M18 17V9M12 17V5M6 17v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="quick-action-text">Анализ тренда BTC</div>
+                    </button>
+                    <button class="quick-action-btn" onclick="quickAction('Обзор рынка')">
+                        <div class="quick-action-icon" style="background: #3B82F6;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="quick-action-text">Обзор рынка</div>
+                    </button>
+                    <button class="quick-action-btn" onclick="quickAction('Торговые идеи')">
+                        <div class="quick-action-icon" style="background: #F59E0B;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="quick-action-text">Торговые идеи</div>
+                    </button>
+                    <button class="quick-action-btn" onclick="quickAction('Объясни DeFi')">
+                        <div class="quick-action-icon" style="background: #8B5CF6;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="quick-action-text">Объясни DeFi</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="message-input" 
+                placeholder="Ask Era AI anything about crypto..."
+                onkeypress="handleKeyPress(event)"
+            >
+            <button id="send-button" onclick="sendMessage()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button id="stop-button" onclick="stopGeneration()" style="display: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="6" y="6" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>
