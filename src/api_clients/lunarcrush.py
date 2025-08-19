@@ -94,6 +94,14 @@ class LunarCrushClient(BaseAPIClient):
         }
 
         return coin_info
+    
+
+    async def get_coin_time_series(self, coin_id: str, interval: str = "1h") -> Dict[str, Any]:
+        """Get coin time series data."""
+        # Rate limiting
+        await asyncio.sleep(1)
+        response = await self.request("GET", f"/public/coins/{coin_id}/time-series/v2?interval={interval}")
+        return response
 
     
     @staticmethod

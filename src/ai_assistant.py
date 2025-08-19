@@ -18,6 +18,7 @@ class AIAssistant:
         self.function_caller = None  # Will be initialized in async context
         self.conversation_history: List[Dict[str, str]] = []
         self.system_prompt = config.SYSTEM_PROMPT
+        self._summary: str = ""
     
     async def _ensure_function_caller(self):
         """Ensure function caller is initialized with async context."""
@@ -32,7 +33,6 @@ class AIAssistant:
             self.function_caller = None
     
     async def chat(self, user_message: str, use_rag: bool = True, use_functions: bool = True, temperature: float = 0.7, translate_queries: bool = True) -> Dict[str, Any]:
-    
         try:
             # Ensure function caller is initialized
             if use_functions:
@@ -45,11 +45,14 @@ class AIAssistant:
             
             messages = self.conversation_history.copy()
             
+            system_content = self._build_system_prompt()
             if not messages or messages[0]["role"] != "system":
                 messages.insert(0, {
                     "role": "system",
-                    "content": self.system_prompt
+                    "content": system_content
                 })
+            else:
+                messages[0]["content"] = system_content
             
             context = ""
             if use_rag:
@@ -62,8 +65,18 @@ class AIAssistant:
                 
                 context = await self.rag_system.get_relevant_context(search_query)
                 if context:
+                    # Truncate context to avoid exceeding prompt limits
+                    if len(context) > config.RAG_CONTEXT_MAX_CHARS:
+                        context = context[:config.RAG_CONTEXT_MAX_CHARS]
                     enhanced_message = f"Context:\n{context}\n\nUser question: {user_message}"
                     messages[-1]["content"] = enhanced_message
+
+            # Optional: inject concise summary as context carrier if we have one
+            if self._summary:
+                messages.insert(1, {"role": "system", "content": f"Running summary of prior conversation (for context preservation):\n{self._summary}"})
+
+            # Trim conversation history to stay within limits (prefers newest + context)
+            messages = self._trim_messages(messages)
             
             functions = None
             if use_functions:
@@ -109,6 +122,8 @@ class AIAssistant:
                     "content": json.dumps(function_result["result"])
                 })
                 
+                # Re-trim messages after adding function result
+                messages = self._trim_messages(messages)
                 final_response = await self.llm_client.chat_completion(
                     messages=messages,
                     temperature=temperature
@@ -122,6 +137,8 @@ class AIAssistant:
                 "role": "assistant",
                 "content": assistant_message
             })
+            # Update rolling summary to preserve long-term context
+            self._update_summary(user_message, assistant_message)
             
             return {
                 "response": assistant_message,
@@ -141,6 +158,53 @@ class AIAssistant:
     def _is_russian_text(self, text: str) -> bool:
         russian_chars = set('абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ')
         return any(char in russian_chars for char in text)
+
+    def _trim_messages(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Trim messages preferring the most recent turns; keep system and latest user/context fully when possible."""
+        if not messages:
+            return messages
+        max_history = max(1, config.MAX_HISTORY_MESSAGES)
+        system_msg = messages[0] if messages and messages[0].get("role") == "system" else None
+        history = messages[1:] if system_msg else messages[:]
+        # First, cap by number of messages (keep most recent)
+        recent_history = history[-max_history:]
+        # Now enforce soft char budget preferring newest messages
+        budget = config.MAX_PROMPT_CHARS
+        kept_reversed: List[Dict[str, Any]] = []
+        used = 0
+        for msg in reversed(recent_history):
+            content_text = msg.get("content") or ""
+            content_len = len(content_text)
+            if used + content_len <= budget:
+                kept_reversed.append(msg)
+                used += content_len
+            else:
+                # Always keep at least part of the newest message if nothing kept yet
+                if not kept_reversed and content_len > 0:
+                    part = max(0, budget)
+                    new_msg = dict(msg)
+                    new_msg["content"] = content_text[:part]
+                    kept_reversed.append(new_msg)
+                    used += len(new_msg["content"]) 
+                # Otherwise stop; older messages are dropped first
+                break
+        kept_history = list(reversed(kept_reversed))
+        # Prepend system message, truncated if needed
+        if system_msg:
+            remaining = max(0, budget - sum(len((m.get("content") or "")) for m in kept_history))
+            sys_content = system_msg.get("content") or ""
+            if len(sys_content) > remaining and remaining > 0:
+                sys_copy = dict(system_msg)
+                sys_copy["content"] = sys_content[:remaining]
+                return [sys_copy] + kept_history
+            elif remaining <= 0:
+                # No room; still include a very short system prefix to keep role context
+                sys_copy = dict(system_msg)
+                sys_copy["content"] = sys_content[:128]
+                return [sys_copy] + kept_history
+            else:
+                return [system_msg] + kept_history
+        return kept_history
 
     async def _translate_to_english(self, text: str) -> str:
         try:
@@ -354,6 +418,25 @@ class AIAssistant:
     def clear_conversation_history(self) -> Dict[str, str]:
         self.conversation_history = []
         return {"status": "success", "message": "Conversation history cleared"}
+
+    def _build_system_prompt(self) -> str:
+        base = self.system_prompt or ""
+        # Suppress repetitive greetings on continued turns
+        if len(self.conversation_history) >= 2:
+            suppress = "Do not greet or introduce yourself again; continue the conversation concisely."
+            return f"{base}\n\n{suppress}" if base else suppress
+        return base
+
+    def _update_summary(self, user: str, assistant: str) -> None:
+        """Maintain a very concise rolling summary to carry context without large history."""
+        # If we already have a summary, just append minimally; otherwise, start it
+        # Keep summary short
+        max_len = 1200
+        addition = f"User: {user}\nAssistant: {assistant}\n"
+        if not self._summary:
+            self._summary = addition[:max_len]
+        else:
+            self._summary = (self._summary + addition)[-max_len:]
     
     async def get_system_info(self) -> Dict[str, Any]:
         try:

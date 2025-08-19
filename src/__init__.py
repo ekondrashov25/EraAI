@@ -1,1 +1,1 @@
-# MCP AI Assistant Package
+# EraAI Assistant Package

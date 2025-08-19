@@ -44,6 +44,7 @@ class FunctionCaller:
         """Register default functions that can be called."""
         self.register_function("get_coin_metrics", self._get_coin_metrics)
         self.register_function("get_coin_metrics_by_id", self._get_coin_metrics_by_id)
+        # self.register_function("get_coin_time_series", self._get_coin_time_series)
 
         # self.register_function("get_weather", self._get_weather)
         # self.register_function("search_web", self._search_web)
@@ -79,7 +80,8 @@ class FunctionCaller:
                     },
                     "required": ["coin_id"]
                 }
-            }
+            },
+            
         ]
         
         # Add custom registered functions

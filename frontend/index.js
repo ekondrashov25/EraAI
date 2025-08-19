@@ -8,6 +8,26 @@ let conversationStarted = false;
 let relatedQuestions = [];
 let isShowingRelatedQuestions = false;
 let currentQuestionIndex = 0;
+let starterQuestions = [];
+let starterLoading = true;
+
+// Smooth auto-scroll helpers
+const SCROLL_THROTTLE_MS = 120;
+let lastScrollTs = 0;
+
+function scrollToBottom(smooth = true) {
+    const messages = document.getElementById('messages');
+    if (!messages) return;
+    try {
+        if (smooth && messages.scrollTo) {
+            messages.scrollTo({ top: messages.scrollHeight, behavior: 'smooth' });
+        } else {
+            messages.scrollTop = messages.scrollHeight;
+        }
+    } catch (_) {
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
 
 // Enhanced markdown parser for better formatting
 function parseMarkdown(text) {
@@ -48,17 +68,19 @@ function parseMarkdown(text) {
     let inList = false;
     let inOrderedList = false;
     let listItems = [];
+    let orderedListCounter = 1;
     
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const isUnorderedItem = line.match(/^[\*\-+]\s/);
-        const isOrderedItem = line.match(/^\d+\.\s/);
+        const isOrderedItem = line.match(/^(\d+)\.\s/);
         
         if (isUnorderedItem || isOrderedItem) {
             if (!inList) {
                 inList = true;
                 inOrderedList = isOrderedItem;
                 listItems = [];
+                orderedListCounter = 1;
             }
             
             // Check if we're switching list types
@@ -74,10 +96,20 @@ function parseMarkdown(text) {
                 // Start new list
                 inOrderedList = isOrderedItem;
                 listItems = [];
+                orderedListCounter = 1;
             }
             
-            const cleanText = line.replace(/^[\*\-+]\s/, '').replace(/^\d+\.\s/, '');
-            listItems.push(`<li>${cleanText}</li>`);
+            let cleanText;
+            if (isOrderedItem) {
+                // For ordered lists, preserve the original number
+                const originalNumber = isOrderedItem[1];
+                cleanText = line.replace(/^\d+\.\s/, '');
+                listItems.push(`<li value="${originalNumber}">${cleanText}</li>`);
+            } else {
+                // For unordered lists, just remove the marker
+                cleanText = line.replace(/^[\*\-+]\s/, '');
+                listItems.push(`<li>${cleanText}</li>`);
+            }
         } else {
             if (inList && listItems.length > 0) {
                 const listTag = inOrderedList ? 'ol' : 'ul';
@@ -88,6 +120,7 @@ function parseMarkdown(text) {
                 inList = false;
                 inOrderedList = false;
                 listItems = [];
+                orderedListCounter = 1;
             }
         }
     }
@@ -107,12 +140,23 @@ function parseMarkdown(text) {
     
     text = lines.join('\n');
     
-    // Handle line breaks more efficiently - only add <br> for actual line breaks
-    // Remove excessive empty lines and normalize spacing
-    text = text.replace(/\n\s*\n/g, '\n'); // Remove multiple consecutive empty lines
-    text = text.replace(/\n\s*\n\s*\n/g, '\n'); // Remove triple+ empty lines
+    // Handle line breaks more efficiently - reduce excessive breaks
+    // Remove multiple consecutive empty lines
+    text = text.replace(/\n\s*\n/g, '\n');
+    text = text.replace(/\n\s*\n\s*\n/g, '\n');
+    
+    // Only add <br> for single line breaks, not for empty lines
     text = text.replace(/\n/g, '<br>');
-    text = text.replace(/<br>\s*<br>\s*<br>/g, '<br><br>'); // Limit consecutive <br> tags
+    
+    // Clean up excessive <br> tags
+    text = text.replace(/<br>\s*<br>\s*<br>/g, '<br><br>');
+    text = text.replace(/<br>\s*<br>\s*<br>\s*<br>/g, '<br><br>');
+    
+    // Remove <br> tags that appear right after headers
+    text = text.replace(/(<\/h[1-6]>)\s*<br>/g, '$1');
+    
+    // Remove <br> tags that appear right before headers
+    text = text.replace(/<br>\s*(<h[1-6]>)/g, '$1');
     
     return text;
 }
@@ -123,7 +167,6 @@ function typeMessage(element, text, speed = 35) {
         let index = 0;
         element.innerHTML = '';
         const messages = document.getElementById('messages');
-        let scrollTimeout;
         let animationId;
         
         function typeChar() {
@@ -133,20 +176,19 @@ function typeMessage(element, text, speed = 35) {
                 element.innerHTML = parseMarkdown(currentText) + '<span class="typing-cursor">|</span>';
                 index++;
                 
-                // Debounced scrolling - only scroll every few characters
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    messages.scrollTop = messages.scrollHeight;
-                }, 150);
+                // Throttled smooth auto-scroll while typing
+                const now = Date.now();
+                if (now - lastScrollTs > SCROLL_THROTTLE_MS) {
+                    scrollToBottom(true);
+                    lastScrollTs = now;
+                }
                 
                 animationId = setTimeout(typeChar, speed);
             } else if (index >= text.length) {
                 // Remove cursor when done
                 element.innerHTML = parseMarkdown(text);
                 // Final scroll to ensure we're at the bottom
-                setTimeout(() => {
-                    messages.scrollTop = messages.scrollHeight;
-                }, 50);
+                scrollToBottom(true);
                 resolve();
             }
             // If isGenerating becomes false, the animation stops naturally
@@ -159,9 +201,6 @@ function typeMessage(element, text, speed = 35) {
             if (animationId) {
                 clearTimeout(animationId);
             }
-            if (scrollTimeout) {
-                clearTimeout(scrollTimeout);
-            }
         };
     });
 }
@@ -173,20 +212,14 @@ function showLoading() {
     const indicator = document.createElement('div');
     indicator.className = 'loading-indicator show';
     indicator.innerHTML = `
-        <div class="loading-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
+        <img src="img/model_generation.gif" alt="Loading..." class="loading-gif">
     `;
     
     // Add to messages container
     messages.appendChild(indicator);
     
     // Smooth scroll to show the loading indicator
-    setTimeout(() => {
-        messages.scrollTop = messages.scrollHeight;
-    }, 50);
+    scrollToBottom(true);
 }
 
 function hideLoading() {
@@ -209,7 +242,40 @@ window.onload = async function() {
         });
     }
     
+    // Initialize textarea height
+    const inputInit = document.getElementById('message-input');
+    if (inputInit) {
+        autoResize(inputInit);
+    }
+    // Start the animated greeting immediately (do not wait for API calls)
+    showInitialGreeting();
+    
+    // Observe size changes to keep pinned to bottom during generation
+    const messagesEl = document.getElementById('messages');
+    if (messagesEl && 'ResizeObserver' in window) {
+        const ro = new ResizeObserver(() => {
+            if (isGenerating) {
+                scrollToBottom(true);
+            }
+        });
+        ro.observe(messagesEl);
+    }
+    
     await checkConnection();
+    // Show loading state and fetch starters
+    starterLoading = true;
+    updateQuickActionsDisplay();
+    try {
+        const starters = await fetchQuickActions();
+        if (starters && starters.length > 0) {
+            starterQuestions = starters;
+        }
+    } catch (e) {
+        console.error('Failed to load quick actions:', e);
+    } finally {
+        starterLoading = false;
+        updateQuickActionsDisplay();
+    }
 };
 
 async function checkConnection() {
@@ -256,8 +322,6 @@ function addMessage(role, content, animate = false) {
     contentDiv.className = 'message-content';
     messageDiv.appendChild(contentDiv);
     
-
-    
     // Add timestamp
     const timestampDiv = document.createElement('div');
     timestampDiv.className = 'message-timestamp';
@@ -265,10 +329,12 @@ function addMessage(role, content, animate = false) {
     messageDiv.appendChild(timestampDiv);
     
     messages.appendChild(messageDiv);
+    // Keep view pinned to the newest message
+    scrollToBottom(false);
     
     // Only scroll immediately for non-animated messages
     if (!animate) {
-        messages.scrollTop = messages.scrollHeight;
+        scrollToBottom(false);
     }
     
     // Handle animation for assistant messages
@@ -280,8 +346,77 @@ function addMessage(role, content, animate = false) {
     }
 }
 
+function setQuickActionsDisabled(disabled) {
+    const content = document.getElementById('quick-actions-content');
+    const modeToggleBtn = document.getElementById('mode-toggle-btn');
+    const input = document.getElementById('message-input');
+    if (content) {
+        if (disabled) {
+            content.classList.add('disabled-during-generation');
+        } else {
+            content.classList.remove('disabled-during-generation');
+        }
+    }
+    if (modeToggleBtn) {
+        modeToggleBtn.disabled = !!disabled;
+    }
+    // Avoid input jumping by keeping its height stable while generating
+    if (input) {
+        if (disabled) {
+            // Lock to base compact height so the field does not grow
+            input.dataset.locked = '1';
+            input.style.height = '48px';
+            input.style.minHeight = '48px';
+            input.style.maxHeight = '48px';
+            input.style.overflowY = 'hidden';
+            input.style.overflowX = 'hidden';
+            input.style.paddingTop = '';
+            input.style.paddingBottom = '';
+        } else {
+            input.style.height = '';
+            input.style.minHeight = '48px';
+            input.style.maxHeight = '160px';
+            input.style.overflowY = 'hidden';
+            input.style.overflowX = 'hidden';
+            delete input.dataset.locked;
+            autoResize(input);
+        }
+    }
+}
+
+
+
+// Show loading gif, then type the initial greeting like a normal assistant response
+async function showInitialGreeting() {
+    const greeting = 'Привет! Я - Эра, твой личный AI-помощник по криптовалютам и экономике. Я всегда готова помочь вам с аналитикой токенов, генерированием торговых идей, объяснением принципов работы рынка и предоставлением знаний в области криптоэкономики. Задайте мне вопрос или воспользуйтесь подсказками Quick Actions.';
+    const input = document.getElementById('message-input');
+    if (input) {
+        input.readOnly = true;
+    }
+    showLoading();
+    // brief delay to emphasize the typing start
+    await new Promise(resolve => setTimeout(resolve, 600));
+    hideLoading();
+    // Simulate generation state for typing animation
+    isGenerating = true;
+    setQuickActionsDisabled(true);
+    await addMessage('assistant', greeting, true);
+    isGenerating = false;
+    setQuickActionsDisabled(false);
+    if (input) {
+        input.readOnly = false;
+        input.focus();
+    }
+}
+
 function quickAction(action) {
     const input = document.getElementById('message-input');
+    // Reset input to compact size before filling
+    input.style.height = '48px';
+    input.style.minHeight = '48px';
+    input.style.maxHeight = '160px';
+    input.style.overflowY = 'hidden';
+    input.style.overflowX = 'hidden';
     input.value = action;
     sendMessage();
 }
@@ -308,6 +443,29 @@ async function fetchRelatedQuestions() {
         return null;
     } catch (error) {
         console.error('Failed to fetch related questions:', error);
+        return null;
+    }
+}
+
+async function fetchQuickActions() {
+    try {
+        const response = await fetch(`${API_BASE}/quick_actions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        if (data.error) {
+            console.error('Error fetching quick actions:', data.error);
+            return null;
+        } else if (data.result && data.result.content) {
+            const content = data.result.content[0];
+            if (content.text === 'quick_actions') {
+                return content.questions || [];
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Failed to fetch quick actions:', error);
         return null;
     }
 }
@@ -375,53 +533,43 @@ function updateQuickActionsDisplay() {
         
         quickActionsContent.innerHTML = questionHTML;
     } else {
-        // Show default quick actions
+        // Starter quick actions section
         quickActionsHeader.textContent = 'Quick Actions';
         if (conversationStarted && relatedQuestions.length > 0) {
             modeToggleText.textContent = 'Show Related Questions';
         }
-        
-        quickActionsContent.innerHTML = `
-            <div class="quick-actions-grid">
-                <button class="quick-action-btn" onclick="quickAction('Анализ BTC')">
-                    <div class="quick-action-icon" style="background: #10B981;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M18 17V9M12 17V5M6 17v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
+        if (starterLoading) {
+            // Show 4 loading gifs as placeholders
+            const items = [0,1,2,3].map(() => `
+                <div class="qa-loading-item"><img src="img/quick_actions_loading.gif" alt="Loading..." class="qa-loading-gif"></div>
+            `).join('');
+            quickActionsContent.innerHTML = `<div class="qa-loading-grid">${items}</div>`;
+            return;
+        }
+        if (starterQuestions && starterQuestions.length > 0) {
+            const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
+            const icons = [
+                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 17V9M12 17V5M6 17v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+            ];
+            const grid = starterQuestions.slice(0, 4).map((q, i) => `
+                <button class="quick-action-btn" onclick="quickAction('${q.replace(/'/g, "\\'")}')">
+                    <div class="quick-action-icon" style="background: ${colors[i % colors.length]};">
+                        ${icons[i % icons.length]}
                     </div>
-                    <div class="quick-action-text">Анализ BTC</div>
+                    <div class="quick-action-text">${q}</div>
                 </button>
-                <button class="quick-action-btn" onclick="quickAction('Обзор рынка')">
-                    <div class="quick-action-icon" style="background: #3B82F6;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div class="quick-action-text">Обзор рынка</div>
-                </button>
-                <button class="quick-action-btn" onclick="quickAction('Торговые идеи')">
-                    <div class="quick-action-icon" style="background: #F59E0B;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div class="quick-action-text">Торговые идеи</div>
-                </button>
-                <button class="quick-action-btn" onclick="quickAction('Что такое DeFi')">
-                    <div class="quick-action-icon" style="background: #8B5CF6;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div class="quick-action-text">Что такое DeFi</div>
-                </button>
-            </div>
-        `;
+            `).join('');
+            quickActionsContent.innerHTML = `<div class="quick-actions-grid">${grid}</div>`;
+        } else {
+            // If starters failed to load, keep showing loading placeholders so we never show static defaults
+            const items = [0,1,2,3].map(() => `
+                <div class="qa-loading-item"><img src="img/quick_actions_loading.gif" alt="Loading..." class="qa-loading-gif"></div>
+            `).join('');
+            quickActionsContent.innerHTML = `<div class="qa-loading-grid">${items}</div>`;
+        }
     }
 }
 
@@ -451,15 +599,19 @@ async function sendMessage() {
     // Set generation state
     isGenerating = true;
     currentGenerationController = new AbortController();
+    setQuickActionsDisabled(true);
     
-    // Disable input and show stop button
-    input.disabled = true;
+    // Make input read-only and show stop button (avoids browser disabled styling shifts)
+    input.readOnly = true;
     sendButton.style.display = 'none';
     stopButton.style.display = 'flex';
     
     // Add user message
     addMessage('user', message);
     input.value = '';
+    autoResize(input);
+    
+
     
     // Show loading indicator
     showLoading();
@@ -520,17 +672,36 @@ async function sendMessage() {
         
         // Reset UI
         hideLoading();
-        input.disabled = false;
+        input.readOnly = false;
         sendButton.style.display = 'flex';
         stopButton.style.display = 'none';
         input.focus();
+        autoResize(input);
+        setQuickActionsDisabled(false);
     }
 }
 
-function handleKeyPress(event) {
-    if (event.key === 'Enter') {
+function handleKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
         sendMessage();
     }
+    
+
+}
+
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    const newHeight = Math.min(textarea.scrollHeight, 160);
+    textarea.style.height = newHeight + 'px';
+    // Hide scrollbars when not needed
+    if (newHeight <= 48 || textarea.scrollHeight <= newHeight) {
+        textarea.style.overflowY = 'hidden';
+    } else {
+        textarea.style.overflowY = 'auto';
+    }
+    // Ensure no horizontal overflow
+    textarea.style.overflowX = 'hidden';
 }
 
 function stopGeneration() {
@@ -544,7 +715,7 @@ function stopGeneration() {
         document.getElementById('send-button').style.display = 'flex';
         
         // Re-enable input
-        document.getElementById('message-input').disabled = false;
+        document.getElementById('message-input').readOnly = false;
         
         // Hide loading indicator
         hideLoading();
@@ -557,6 +728,8 @@ function stopGeneration() {
             const textWithoutCursor = textWithCursor.replace('<span class="typing-cursor">|</span>', '');
             currentMessage.innerHTML = textWithoutCursor;
         }
+        // Re-enable quick actions and restore input sizing/scroll
+        setQuickActionsDisabled(false);
     }
 }
 
@@ -758,18 +931,10 @@ async function clearHistory() {
             isShowingRelatedQuestions = false;
             currentQuestionIndex = 0;
             
-            // Clear the messages display
-            document.getElementById('messages').innerHTML = `
-                <div class="message assistant">
-                    <div class="message-content">
-                        Привет! Я - Эра, ваш личный AI-помощник по криптовалютам и экономике. Я всегда готова помочь вам с аналитикой токенов, генерированием торговых идей, объяснением принципов работы рынка и предоставлением знаний в области криптоэкономики. Задайте мне вопрос или воспользуйтесь подсказками Quick Actions.                    </div>
-                    <div class="message-timestamp">${new Date().toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        hour12: true 
-                    })}</div>
-                </div>
-            `;
+            // Clear the messages display and show animated greeting
+            const messagesEl = document.getElementById('messages');
+            messagesEl.innerHTML = '';
+            await showInitialGreeting();
             
             // Reset quick actions to default
             updateQuickActionsDisplay();

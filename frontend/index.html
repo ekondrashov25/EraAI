@@ -10,7 +10,7 @@
     <div class="chat-container">
         <div class="header">
             <div class="header-icon">
-                <img src="icon.png" alt="Era AI" class="avatar-icon">
+                <img src="img/icon.png" alt="Era AI" class="avatar-icon">
             </div>
             <div class="header-content">
                 <h1>Era AI</h1>
@@ -18,13 +18,7 @@
             </div>
         </div>
         
-        <div class="messages" id="messages">
-            <div class="message assistant">
-                <div class="message-content">
-                    Привет! Я - Эра, ваш личный Al-помощник по криптовалютам и экономике. Я всегда готова помочь вам с аналитикой токенов, генерированием торговых идей, объяснением принципов работы рынка и предоставлением знаний в области криптоэкономики. Задайте мне вопрос или воспользуйтесь подсказками Quick Actions.                </div>
-                <div class="message-timestamp" id="initial-timestamp"></div>
-            </div>
-        </div>
+        <div class="messages" id="messages"></div>
         
         <div class="quick-actions" id="quick-actions">
             <div class="quick-actions-header" onclick="toggleQuickActions()">
@@ -82,12 +76,13 @@
         </div>
         
         <div class="input-container">
-            <input 
-                type="text" 
-                id="message-input" 
-                placeholder="Ask Era AI anything about crypto..."
-                onkeypress="handleKeyPress(event)"
-            >
+            <textarea 
+                id="message-input"
+                placeholder="Ask Era about the market or any token..."
+                rows="1"
+                onkeydown="handleKeyDown(event)"
+                oninput="autoResize(this)"
+            ></textarea>
             <button id="send-button" onclick="sendMessage()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

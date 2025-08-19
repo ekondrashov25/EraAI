@@ -178,6 +178,9 @@ class RAGSystem:
                 context_parts.append(f"Document {i}:\n{doc.page_content}")
             
             context = "\n\n".join(context_parts)
+            # Hard cap context size to avoid prompt bloat
+            if len(context) > config.RAG_CONTEXT_MAX_CHARS:
+                context = context[:config.RAG_CONTEXT_MAX_CHARS]
             logger.info(f"Retrieved context with {len(documents)} documents")
             
             return context

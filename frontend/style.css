@@ -24,6 +24,7 @@ body {
     overflow: hidden;
     position: relative;
     box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 /* Ensure no horizontal overflow on mobile */
@@ -164,6 +165,7 @@ body {
     -webkit-overflow-scrolling: touch;
     width: 100%;
     box-sizing: border-box;
+    min-height: 0;
 }
 
 .message {
@@ -176,114 +178,164 @@ body {
     position: relative;
     box-sizing: border-box;
     overflow-wrap: break-word;
+    transition: all 0.3s ease;
 }
 
 .message-content {
-    line-height: 1.5;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.message-content p {
+    margin: 0.8em 0;
+    line-height: 1.6;
+}
+
+.message-content p:first-child {
+    margin-top: 0;
+}
+
+.message-content p:last-child {
+    margin-bottom: 0;
 }
 
 .message-content h1 {
-    font-size: 1.3em;
-    margin: 0.2em 0 0.1em 0;
-    font-weight: 600;
+    font-size: 1.4em;
+    margin: 1.2em 0 0.6em 0;
+    font-weight: 700;
+    color: #ffffff;
+    border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+    padding-bottom: 0.3em;
+    line-height: 1.3;
 }
 
 .message-content h2 {
-    font-size: 1.1em;
-    margin: 0.15em 0 0.1em 0;
+    font-size: 1.2em;
+    margin: 1em 0 0.5em 0;
     font-weight: 600;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    padding-bottom: 0.2em;
+    line-height: 1.3;
 }
 
 .message-content h3 {
-    font-size: 1em;
-    margin: 0.1em 0 0.05em 0;
+    font-size: 1.1em;
+    margin: 0.8em 0 0.4em 0;
     font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.3;
 }
 
 .message-content h4 {
-    font-size: 0.95em;
-    margin: 0.1em 0 0.05em 0;
+    font-size: 1em;
+    margin: 0.6em 0 0.3em 0;
     font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.3;
 }
 
 .message-content h5 {
-    font-size: 0.9em;
-    margin: 0.05em 0 0.02em 0;
+    font-size: 0.95em;
+    margin: 0.5em 0 0.25em 0;
     font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.3;
 }
 
 .message-content h6 {
-    font-size: 0.85em;
-    margin: 0.05em 0 0.02em 0;
+    font-size: 0.9em;
+    margin: 0.4em 0 0.2em 0;
     font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.3;
 }
 
 .message-content ul {
-    margin: 0.1em 0;
-    padding-left: 1em;
+    margin: 0.8em 0;
+    padding-left: 1.5em;
+    list-style-type: none;
 }
+
+
 
 .message-content ol {
-    margin: 0.1em 0;
-    padding-left: 1em;
+    margin: 0.8em 0;
+    padding-left: 1.5em;
+    counter-reset: list-counter;
 }
 
-.message-content li {
-    margin: 0.02em 0;
-    line-height: 1.2;
-}
+
 
 .message-content code {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2px 6px;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60A5FA;
+    padding: 0.2em 0.4em;
     border-radius: 4px;
-    font-family: 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
     font-size: 0.9em;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    white-space: nowrap;
 }
 
 .message-content pre {
-    background: rgba(0, 0, 0, 0.3);
-    padding: 6px;
-    border-radius: 4px;
-    margin: 0.1em 0;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    padding: 1em;
+    margin: 1em 0;
     overflow-x: auto;
+    position: relative;
 }
+
+
 
 .message-content pre code {
     background: none;
+    border: none;
     padding: 0;
-    color: #e6e6e6;
+    color: #E5E7EB;
     font-size: 0.9em;
-    line-height: 1.4;
+    line-height: 1.5;
+    white-space: pre;
+    display: block;
 }
 
 .message-content strong {
     font-weight: 600;
+    color: #ffffff;
 }
 
 .message-content em {
     font-style: italic;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .message-content del {
     text-decoration: line-through;
-    opacity: 0.7;
+    opacity: 0.6;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .message-content blockquote {
-    border-left: 2px solid #666;
-    padding-left: 0.6em;
-    margin: 0.15em 0;
+    border-left: 4px solid #3B82F6;
+    background: rgba(59, 130, 246, 0.05);
+    padding: 0.8em 1em;
+    margin: 1em 0;
+    border-radius: 0 8px 8px 0;
     font-style: italic;
-    opacity: 0.9;
+    color: rgba(255, 255, 255, 0.9);
+    position: relative;
 }
+
+
 
 .message-content hr {
     border: none;
-    height: 1px;
-    background: #666;
-    margin: 0.2em 0;
-    opacity: 0.5;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+    margin: 1.5em 0;
+    border-radius: 1px;
 }
 
 .typing-cursor {
@@ -308,33 +360,11 @@ body {
     display: block;
 }
 
-.loading-dots {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-}
-
-.loading-dots span {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #888;
-    animation: loadingPulse 1.6s infinite ease-in-out;
-}
-
-.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-.loading-dots span:nth-child(3) { animation-delay: 0s; }
-
-@keyframes loadingPulse {
-    0%, 80%, 100% { 
-        transform: scale(0.8);
-        opacity: 0.5;
-    }
-    40% { 
-        transform: scale(1);
-        opacity: 1;
-    }
+.loading-gif {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    display: block;
 }
 
 @keyframes blink {
@@ -394,6 +424,8 @@ body {
 
 
 
+
+
 .message.loading {
     background: #f1f3f4;
     color: #666;
@@ -409,25 +441,37 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.input-container input {
+.input-container textarea {
     flex: 1;
     padding: 15px 20px;
     border: 2px solid #2d2d44;
-    border-radius: 25px;
+    border-radius: 16px;
     font-size: 16px;
+    font-family: inherit;
     outline: none;
     transition: border-color 0.3s ease;
     background: #2d2d44;
     color: white;
+    resize: none;
+    max-height: 160px; /* JS may lock during generation to avoid jump */
+    min-height: 48px;
+    line-height: 1.4;
+    overflow-y: hidden; /* default: no scroll until content exceeds max-height */
+    overflow-x: hidden;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
-.input-container input::placeholder {
+.input-container textarea::placeholder {
     color: #888;
 }
 
-.input-container input:focus {
+.input-container textarea:focus {
     border-color: #1E3A8A;
 }
 
@@ -469,6 +513,12 @@ body {
 .quick-actions {
     background: #2d2d44;
     border-top: 1px solid #4a4a6a;
+    flex-shrink: 0;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1;
 }
 
 .quick-actions-header {
@@ -549,8 +599,11 @@ body {
 }
 
 .quick-actions-content {
-    padding: 0 20px 15px 20px;
+    padding: 15px 20px 15px 20px;
     animation: slideDown 0.3s ease-out;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .quick-actions-grid {
@@ -656,6 +709,9 @@ body {
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
+    position: relative;
+    z-index: 10;
+    overflow: visible;
 }
 
 .carousel-arrow {
@@ -671,6 +727,8 @@ body {
     justify-content: center;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    position: relative;
+    z-index: 8;
 }
 
 .carousel-arrow:hover:not([disabled]) {
@@ -697,7 +755,20 @@ body {
     text-align: left;
     flex: 1;
     min-height: 48px;
+    position: relative;
+    z-index: 5;
 }
+
+/* Disabled state during generation */
+.disabled-during-generation { pointer-events: none; opacity: 0.6; }
+.disabled-during-generation .quick-action-btn,
+.disabled-during-generation .related-question-btn-compact { cursor: not-allowed; }
+
+/* Prevent layout jump when disabling: reserve space */
+.disabled-during-generation { height: auto; }
+.disabled-during-generation .quick-actions-grid,
+.disabled-during-generation .related-question-carousel,
+.disabled-during-generation .qa-loading-grid { opacity: 0.6; }
 
 .related-question-btn-compact:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -877,6 +948,7 @@ body {
     width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+    overflow-x: hidden;
 }
 
 .quick-actions-header {
@@ -985,9 +1057,10 @@ body {
 }
 
 .quick-actions-content {
-    padding: 0 15px 15px 15px;
+    padding: 15px 15px 15px 15px;
     animation: slideDown 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     overflow: hidden;
+    overflow-x: hidden;
     width: 100%;
     box-sizing: border-box;
 }
@@ -1064,8 +1137,9 @@ body {
     margin-top: 12px;
     margin-bottom: 8px;
     animation: fadeInUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    overflow: hidden;
+    overflow: visible;
     position: relative;
+    z-index: 10;
 }
 
 .carousel-arrow {
@@ -1133,6 +1207,7 @@ body {
     min-height: 48px;
     position: relative;
     overflow: hidden;
+    z-index: 5;
 }
 
 .related-question-btn-compact::before {
@@ -1256,20 +1331,25 @@ body {
     animation: fadeInUp 0.5s ease-out;
     width: 100%;
     box-sizing: border-box;
+    flex-shrink: 0;
+    overflow-x: hidden;
 }
 
 #message-input {
     flex: 1;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 10px 16px;
+    border-radius: 16px;
+    padding: 14px 16px; /* stable vertical padding to avoid shifting */
     color: white;
     font-size: 14px;
+    font-family: inherit;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
     box-sizing: border-box;
     min-width: 0;
+    align-content: normal;
+    overflow-x: hidden;
 }
 
 #message-input:focus {
@@ -1329,6 +1409,10 @@ body {
     transform: scale(0.95);
 }
 
+/* send button uses the default gradient styles */
+
+/* Removed .send-gif as we reverted to SVG icon */
+
 /* Loading Animation */
 .loading-indicator {
     display: flex;
@@ -1339,6 +1423,31 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Quick Actions loading rings */
+.qa-loading-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.qa-loading-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 64px;
+}
+
+.qa-loading-gif {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
 .loading-indicator.show {
     opacity: 1;
     transform: translateY(0);
@@ -1495,7 +1604,7 @@ body {
     }
     
     .quick-actions-content {
-        padding: 0 24px 20px 24px;
+        padding: 20px 24px 20px 24px;
     }
     
     .quick-actions-grid {
@@ -1520,6 +1629,8 @@ body {
     .related-question-carousel {
         gap: 12px;
         margin-top: 16px;
+        position: relative;
+        z-index: 15;
     }
     
     .carousel-arrow {
@@ -1548,10 +1659,11 @@ body {
     .input-container {
         padding: 20px 24px;
         gap: 12px;
+        overflow-x: hidden;
     }
     
     #message-input {
-        padding: 16px 24px;
+        padding: 13px 24px;
         border-radius: 28px;
         font-size: 16px;
     }
@@ -1614,11 +1726,12 @@ body {
     }
     
     .quick-actions-content {
-        padding: 0 28px 24px 28px;
+        padding: 24px 28px 24px 28px;
     }
     
     .input-container {
         padding: 24px 28px;
+        overflow-x: hidden;
     }
 }
 
@@ -1650,4 +1763,368 @@ body {
         margin: 0;
         padding: 32px 40px;
     }
+}
+
+/* Mobile responsiveness for markdown */
+@media (max-width: 768px) {
+    .message-content {
+        line-height: 1.4;
+    }
+    
+    .message-content h1 {
+        font-size: 1.2em;
+        margin: 0;
+    }
+    
+    .message-content h2 {
+        font-size: 1.1em;
+        margin: 0;
+    }
+    
+    .message-content h3 {
+        font-size: 1em;
+        margin: 0;
+    }
+    
+    .message-content pre {
+        padding: 0.6em;
+        margin: 0.6em 0;
+        font-size: 0.85em;
+    }
+    
+    .message-content blockquote {
+        padding: 0.5em 0.6em;
+        margin: 0.6em 0;
+    }
+    
+    .message-content ul,
+    .message-content ol {
+        padding-left: 1em;
+    }
+    
+    .message-content ul li,
+    .message-content ol li {
+        margin: 0.15em 0;
+    }
+}
+
+/* Simple scrollbar for code blocks */
+.message-content pre::-webkit-scrollbar {
+    height: 6px;
+}
+
+.message-content pre::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.message-content pre::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 3px;
+}
+
+.message-content {
+    line-height: 1.5;
+    color: #ffffff;
+}
+
+.message-content p {
+    margin: 0.5em 0;
+    line-height: 1.5;
+    color: #ffffff;
+}
+
+.message-content p:first-child {
+    margin-top: 0;
+}
+
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+
+.message-content h1 {
+    font-size: 1.3em;
+    margin: 0;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.message-content h2 {
+    font-size: 1.1em;
+    margin: 0;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.message-content h3 {
+    font-size: 1em;
+    margin: 0;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.message-content h4 {
+    font-size: 0.95em;
+    margin: 0;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.message-content h5 {
+    font-size: 0.9em;
+    margin: 0;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.message-content h6 {
+    font-size: 0.85em;
+    margin: 0;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.message-content ul {
+    margin: 0.5em 0;
+    padding-left: 1.2em;
+    color: #ffffff;
+    list-style-type: disc;
+}
+
+.message-content ul li {
+    margin: 0.2em 0;
+    line-height: 1.4;
+    color: #ffffff;
+}
+
+.message-content ol {
+    margin: 0.5em 0;
+    padding-left: 1.2em;
+    color: #ffffff;
+}
+
+.message-content ol li {
+    margin: 0.2em 0;
+    line-height: 1.4;
+    color: #ffffff;
+}
+
+.message-content code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #ffffff;
+}
+
+.message-content pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.8em;
+    border-radius: 6px;
+    margin: 0.8em 0;
+    overflow-x: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-content pre code {
+    background: none;
+    padding: 0;
+    color: #ffffff;
+    font-size: 0.9em;
+    line-height: 1.4;
+    border: none;
+}
+
+.message-content strong {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.message-content em {
+    font-style: italic;
+    color: #ffffff;
+}
+
+.message-content del {
+    text-decoration: line-through;
+    opacity: 0.6;
+    color: #ffffff;
+}
+
+.message-content blockquote {
+    border-left: 3px solid #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.6em 0.8em;
+    margin: 0.8em 0;
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+    color: #ffffff;
+}
+
+.message-content hr {
+    border: none;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.3);
+    margin: 1em 0;
+    opacity: 0.5;
+}
+
+/* Remove excessive spacing from consecutive elements */
+.message-content h1 + h1,
+.message-content h2 + h2,
+.message-content h3 + h3,
+.message-content h4 + h4,
+.message-content h5 + h5,
+.message-content h6 + h6 {
+    margin-top: 0;
+}
+
+.message-content ul + ul,
+.message-content ol + ol {
+    margin-top: 0.3em;
+}
+
+.message-content pre + pre {
+    margin-top: 0.5em;
+}
+
+.message-content blockquote + blockquote {
+    margin-top: 0.5em;
+}
+
+/* Clean up spacing around lists */
+.message-content p + ul,
+.message-content p + ol {
+    margin-top: 0.2em;
+}
+
+.message-content ul + p,
+.message-content ol + p {
+    margin-top: 0.2em;
+}
+
+/* Clean up spacing around code blocks */
+.message-content p + pre {
+    margin-top: 0.5em;
+}
+
+.message-content pre + p {
+    margin-top: 0.5em;
+}
+
+/* Clean up spacing around blockquotes */
+.message-content p + blockquote {
+    margin-top: 0.5em;
+}
+
+.message-content blockquote + p {
+    margin-top: 0.5em;
+}
+
+/* Remove gaps between headers and content */
+.message-content h1 + p,
+.message-content h2 + p,
+.message-content h3 + p,
+.message-content h4 + p,
+.message-content h5 + p,
+.message-content h6 + p {
+    margin-top: 0.3em;
+}
+
+.message-content h1 + ul,
+.message-content h2 + ul,
+.message-content h3 + ul,
+.message-content h4 + ul,
+.message-content h5 + ul,
+.message-content h6 + ul,
+.message-content h1 + ol,
+.message-content h2 + ol,
+.message-content h3 + ol,
+.message-content h4 + ol,
+.message-content h5 + ol,
+.message-content h6 + ol {
+    margin-top: 0.2em;
+}
+
+/* Add space between different sections/paragraphs */
+.message-content p + h1,
+.message-content p + h2,
+.message-content p + h3,
+.message-content p + h4,
+.message-content p + h5,
+.message-content p + h6 {
+    margin-top: 1em;
+}
+
+.message-content ul + h1,
+.message-content ul + h2,
+.message-content ul + h3,
+.message-content ul + h4,
+.message-content ul + h5,
+.message-content ul + h6,
+.message-content ol + h1,
+.message-content ol + h2,
+.message-content ol + h3,
+.message-content ol + h4,
+.message-content ol + h5,
+.message-content ol + h6 {
+    margin-top: 1em;
+}
+
+/* Add space between introductory text and first header */
+.message-content p:first-child + h1,
+.message-content p:first-child + h2,
+.message-content p:first-child + h3,
+.message-content p:first-child + h4,
+.message-content p:first-child + h5,
+.message-content p:first-child + h6 {
+    margin-top: 1em;
+}
+
+/* Add space between any paragraph and the next header (including introductory text) */
+.message-content p + h1,
+.message-content p + h2,
+.message-content p + h3,
+.message-content p + h4,
+.message-content p + h5,
+.message-content p + h6 {
+    margin-top: 1em;
+}
+
+/* Reduce spacing between paragraphs within the same section */
+.message-content p + p {
+    margin-top: 0.3em;
+}
+
+/* Reduce spacing around lists */
+.message-content ul,
+.message-content ol {
+    margin: 0.3em 0;
+    padding-left: 1.2em;
+    color: #ffffff;
+}
+
+.message-content ul li,
+.message-content ol li {
+    margin: 0.1em 0;
+    line-height: 1.4;
+    color: #ffffff;
+}
+
+/* Reduce spacing between ordered list items and their nested content */
+.message-content ol + ul,
+.message-content ol + ol {
+    margin-top: 0.1em;
+}
+
+/* Reduce spacing between unordered list items and their nested content */
+.message-content ul + ul,
+.message-content ul + ol {
+    margin-top: 0.1em;
+}
+
+/* Reduce spacing when lists appear right after other content */
+.message-content p + ul,
+.message-content p + ol {
+    margin-top: 0.2em;
 }
