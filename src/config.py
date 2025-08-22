@@ -6,7 +6,7 @@ load_dotenv()
 class Config:
     # OpenAI Configuration
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o")
     
     # Response token cap to avoid large generations
     RESPONSE_MAX_TOKENS: int = int(os.getenv("RESPONSE_MAX_TOKENS", "600"))

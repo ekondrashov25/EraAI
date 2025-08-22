@@ -159,7 +159,7 @@ body {
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 8px;
     background: #1a1a2e;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
@@ -181,14 +181,95 @@ body {
     transition: all 0.3s ease;
 }
 
+.message.assistant {
+    max-width: 65%;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    margin: 12px 0;
+    align-self: flex-start;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
 .message-content {
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.95);
 }
 
+.message.assistant .message-content {
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 400;
+    text-align: left;
+    padding: 0;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    flex: 1;
+}
+
 .message-content p {
     margin: 0.8em 0;
     line-height: 1.6;
+}
+
+.message.assistant .message-content p {
+    margin: 0.3em 0;
+    line-height: 1.5;
+    color: #ffffff;
+    text-align: justify;
+    hyphens: auto;
+}
+
+.message.assistant .message-content p:first-child {
+    margin-top: 0;
+}
+
+.message.assistant .message-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Special styles for greeting message */
+.greeting-message {
+    margin: 20px 0 16px 0;
+    padding: 0;
+    animation: fadeInGreeting 0.8s ease-out;
+}
+
+.greeting-message .message-content {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #ffffff;
+    font-weight: 400;
+    text-align: left;
+    padding: 0;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.greeting-message .message-content p {
+    margin: 0.4em 0;
+    line-height: 1.6;
+    color: #ffffff;
+    text-align: justify;
+    hyphens: auto;
+}
+
+@keyframes fadeInGreeting {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .message-content p:first-child {
@@ -390,6 +471,29 @@ body {
     text-align: right;
 }
 
+.message.assistant .message-timestamp {
+    display: none;
+}
+
+.message.assistant .message-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.message.assistant .message-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
 @keyframes fadeIn {
     from { 
         opacity: 0; 
@@ -409,10 +513,12 @@ body {
 }
 
 .message.assistant {
-    background: #2d2d44;
+    background: transparent;
     color: white;
     align-self: flex-start;
-    border-bottom-left-radius: 6px;
+    border-bottom-left-radius: 0;
+    padding: 0;
+    max-width: 100%;
 }
 
 .message.error {

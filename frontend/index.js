@@ -146,11 +146,11 @@ function parseMarkdown(text) {
     text = text.replace(/\n\s*\n\s*\n/g, '\n');
     
     // Only add <br> for single line breaks, not for empty lines
-    text = text.replace(/\n/g, '<br>');
+    text = text.replace(/\n/g, ' ');
     
-    // Clean up excessive <br> tags
-    text = text.replace(/<br>\s*<br>\s*<br>/g, '<br><br>');
-    text = text.replace(/<br>\s*<br>\s*<br>\s*<br>/g, '<br><br>');
+    // Clean up excessive spaces
+    text = text.replace(/\s+/g, ' ');
+    text = text.trim();
     
     // Remove <br> tags that appear right after headers
     text = text.replace(/(<\/h[1-6]>)\s*<br>/g, '$1');
@@ -162,7 +162,7 @@ function parseMarkdown(text) {
 }
 
 // Typing animation function
-function typeMessage(element, text, speed = 35) {
+function typeMessage(element, text, speed = 12) {
     return new Promise((resolve) => {
         let index = 0;
         element.innerHTML = '';
@@ -304,10 +304,13 @@ function updateStatus(message) {
     console.log('Status:', message);
 }
 
-function addMessage(role, content, animate = false) {
+function addMessage(role, content, animate = false, speed = null, className = null) {
     const messages = document.getElementById('messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
+    if (className) {
+        messageDiv.classList.add(className);
+    }
     
     // Add timestamp
     const now = new Date();
@@ -320,6 +323,18 @@ function addMessage(role, content, animate = false) {
     // Create content container
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
+    
+    // Add avatar for assistant messages
+    if (role === 'assistant') {
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        const avatarImg = document.createElement('img');
+        avatarImg.src = 'img/icon.png';
+        avatarImg.alt = 'Era AI';
+        avatarDiv.appendChild(avatarImg);
+        messageDiv.appendChild(avatarDiv);
+    }
+    
     messageDiv.appendChild(contentDiv);
     
     // Add timestamp
@@ -339,7 +354,7 @@ function addMessage(role, content, animate = false) {
     
     // Handle animation for assistant messages
     if (animate && role === 'assistant') {
-        return typeMessage(contentDiv, content);
+        return typeMessage(contentDiv, content, speed);
     } else {
         contentDiv.innerHTML = parseMarkdown(content);
         return Promise.resolve();
@@ -400,7 +415,7 @@ async function showInitialGreeting() {
     // Simulate generation state for typing animation
     isGenerating = true;
     setQuickActionsDisabled(true);
-    await addMessage('assistant', greeting, true);
+    await addMessage('assistant', greeting, true, 8, 'greeting-message');
     isGenerating = false;
     setQuickActionsDisabled(false);
     if (input) {

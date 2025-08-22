@@ -19,7 +19,7 @@ class LLMClient:
         self.chat_model = ChatOpenAI(
             model=config.OPENAI_MODEL,
             temperature=0.7,
-            api_key=config.OPENAI_API_KEY
+            api_key=config.OPENAI_API_KEY,
         )
         # Simple RPM limiter state
         self._request_timestamps: list[float] = []
@@ -64,7 +64,7 @@ class LLMClient:
                     "model": config.OPENAI_MODEL,
                     "messages": messages,
                     "temperature": temperature,
-                    "max_tokens": max_tokens
+                    "max_tokens": max_tokens,
                 }
                 if functions:
                     params["functions"] = functions

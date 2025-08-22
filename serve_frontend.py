@@ -16,7 +16,7 @@ def main():
         print(f"🌐 Frontend server started at http://localhost:{PORT}")
         print(f"📁 Serving files from: {frontend_dir}")
         print()
-        print("📋 To test the MCP AI Assistant:")
+        print("📋 To test the EraAI:")
         print("1. Start the API server: python simple_web_api.py")
         print("2. Open this URL in your browser: http://localhost:3000")
         print("3. Start chatting with your AI assistant!")
