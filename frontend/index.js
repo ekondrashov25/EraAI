@@ -650,16 +650,15 @@ function updateQuickActionsDisplay() {
             return;
         }
         if (starterQuestions && starterQuestions.length > 0) {
-            const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
             const icons = [
-                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 17V9M12 17V5M6 17v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                `<img src="img/graph.gif" alt="Graph" width="40" height="40">`,
+                `<img src="img/done.gif" alt="Done" width="40" height="40">`,
+                `<img src="img/light.gif" alt="Light" width="40" height="40">`,
+                `<img src="img/statera.gif" alt="Starters" width="40" height="40">`
             ];
             const grid = starterQuestions.slice(0, 4).map((q, i) => `
                 <button class="quick-action-btn" onclick="quickAction('${q.replace(/'/g, "\\'")}')">
-                    <div class="quick-action-icon" style="background: ${colors[i % colors.length]};">
+                    <div class="quick-action-icon" style="background: transparent;">
                         ${icons[i % icons.length]}
                     </div>
                     <div class="quick-action-text">${q}</div>
