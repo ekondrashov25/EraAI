@@ -247,8 +247,30 @@ window.onload = async function() {
     if (inputInit) {
         autoResize(inputInit);
     }
+    
+    // Start loading animation on toggle button
+    startQuickActionsLoading();
+    
     // Start the animated greeting immediately (do not wait for API calls)
     showInitialGreeting();
+    
+    // Fetch Quick Actions in the background
+    starterLoading = true;
+    try {
+        const starters = await fetchQuickActions();
+        console.log('Quick Actions loaded:', starters);
+        if (starters && starters.length > 0) {
+            starterQuestions = starters;
+            console.log('Quick Actions set:', starterQuestions);
+        }
+    } catch (e) {
+        console.error('Failed to load quick actions:', e);
+    } finally {
+        starterLoading = false;
+        console.log('Quick Actions loading finished, starterLoading:', starterLoading);
+        // Update display after loading is complete
+        updateQuickActionsDisplay();
+    }
     
     // Observe size changes to keep pinned to bottom during generation
     const messagesEl = document.getElementById('messages');
@@ -261,21 +283,20 @@ window.onload = async function() {
         ro.observe(messagesEl);
     }
     
-    await checkConnection();
-    // Show loading state and fetch starters
-    starterLoading = true;
-    updateQuickActionsDisplay();
-    try {
-        const starters = await fetchQuickActions();
-        if (starters && starters.length > 0) {
-            starterQuestions = starters;
-        }
-    } catch (e) {
-        console.error('Failed to load quick actions:', e);
-    } finally {
-        starterLoading = false;
-        updateQuickActionsDisplay();
+    // Add click handler to hide keyboard when clicking on free area
+    if (messagesEl) {
+        messagesEl.addEventListener('click', function(event) {
+            // Only hide keyboard if clicking on the messages container itself, not on interactive elements
+            if (event.target === messagesEl || event.target.classList.contains('message')) {
+                const input = document.getElementById('message-input');
+                if (input && document.activeElement === input) {
+                    input.blur();
+                }
+            }
+        });
     }
+    
+    await checkConnection();
 };
 
 async function checkConnection() {
@@ -365,15 +386,26 @@ function setQuickActionsDisabled(disabled) {
     const content = document.getElementById('quick-actions-content');
     const modeToggleBtn = document.getElementById('mode-toggle-btn');
     const input = document.getElementById('message-input');
+    
     if (content) {
         if (disabled) {
             content.classList.add('disabled-during-generation');
+            // Hide the panel when model is typing
+            content.style.display = 'none';
         } else {
             content.classList.remove('disabled-during-generation');
+            // Keep panel hidden after generation - user must click to open
+            content.style.display = 'none';
         }
     }
     if (modeToggleBtn) {
         modeToggleBtn.disabled = !!disabled;
+    }
+    
+    // Also disable the main toggle button during generation
+    const toggleBtn = document.getElementById('toggle-quick-actions');
+    if (toggleBtn) {
+        toggleBtn.disabled = !!disabled;
     }
     // Avoid input jumping by keeping its height stable while generating
     if (input) {
@@ -397,6 +429,9 @@ function setQuickActionsDisabled(disabled) {
             autoResize(input);
         }
     }
+    
+    // Update button visibility immediately
+    updateQuickActionsDisplay();
 }
 
 
@@ -418,6 +453,10 @@ async function showInitialGreeting() {
     await addMessage('assistant', greeting, true, 8, 'greeting-message');
     isGenerating = false;
     setQuickActionsDisabled(false);
+    
+    // Show Quick Actions after greeting is complete
+    showQuickActions();
+    
     if (input) {
         input.readOnly = false;
         input.focus();
@@ -485,17 +524,66 @@ async function fetchQuickActions() {
     }
 }
 
+function startQuickActionsLoading() {
+    const toggleBtn = document.getElementById('toggle-quick-actions');
+    const loadingIcon = document.getElementById('toggle-loading-icon');
+    const arrowIcon = document.getElementById('toggle-arrow-icon');
+    
+    if (toggleBtn) {
+        toggleBtn.classList.add('loading');
+    }
+    
+    if (loadingIcon) {
+        loadingIcon.style.display = 'flex';
+    }
+    
+    if (arrowIcon) {
+        arrowIcon.style.display = 'none';
+    }
+}
+
+function showQuickActions() {
+    const toggleBtn = document.getElementById('toggle-quick-actions');
+    const loadingIcon = document.getElementById('toggle-loading-icon');
+    const arrowIcon = document.getElementById('toggle-arrow-icon');
+    const quickActionsContent = document.getElementById('quick-actions-content');
+    
+    if (toggleBtn) {
+        toggleBtn.classList.remove('loading');
+    }
+    
+    if (loadingIcon) {
+        loadingIcon.style.display = 'none';
+    }
+    
+    if (arrowIcon) {
+        arrowIcon.style.display = 'inline';
+    }
+    
+    // Keep content hidden by default - user must click to open
+    if (quickActionsContent) {
+        quickActionsContent.style.display = 'none';
+    }
+    
+    updateQuickActionsDisplay();
+}
+
 function updateQuickActionsDisplay() {
     const quickActionsContent = document.getElementById('quick-actions-content');
     const quickActionsHeader = document.querySelector('.quick-actions-header h3');
     const modeToggleBtn = document.getElementById('mode-toggle-btn');
     const modeToggleText = modeToggleBtn.querySelector('.mode-toggle-text');
     
+    console.log('updateQuickActionsDisplay called');
+    console.log('starterLoading:', starterLoading);
+    console.log('starterQuestions:', starterQuestions);
+    console.log('starterQuestions length:', starterQuestions ? starterQuestions.length : 0);
+    
     // Check if panel is collapsed
     const isPanelCollapsed = quickActionsContent.style.display === 'none';
     
     // Show/hide mode toggle button based on conversation state and panel visibility
-    if (conversationStarted && relatedQuestions.length > 0 && !isPanelCollapsed) {
+    if (conversationStarted && relatedQuestions.length > 0 && !isPanelCollapsed && !isGenerating) {
         modeToggleBtn.style.display = 'flex';
     } else {
         modeToggleBtn.style.display = 'none';
@@ -609,6 +697,11 @@ async function sendMessage() {
     // Track conversation state
     if (!conversationStarted) {
         conversationStarted = true;
+        // Make header compact after first message
+        const header = document.querySelector('.header');
+        if (header) {
+            header.classList.add('compact');
+        }
     }
     
     // Set generation state
@@ -756,22 +849,32 @@ function toggleQuickActions(event) {
         event.stopPropagation();
     }
     
+    // Don't allow toggling while loading or generating
+    const toggleBtn = document.getElementById('toggle-quick-actions');
+    if (toggleBtn && (toggleBtn.classList.contains('loading') || isGenerating)) {
+        return;
+    }
+    
     const content = document.getElementById('quick-actions-content');
     const toggleIcon = document.querySelector('.toggle-icon');
     const modeToggleBtn = document.getElementById('mode-toggle-btn');
     const isHidden = content.style.display === 'none';
     
     if (isHidden) {
+        // Panel is currently hidden, so we're opening it
+        const arrowIcon = document.getElementById('toggle-arrow-icon');
+        if (arrowIcon) arrowIcon.textContent = '▼'; // Set arrow to down when closed (click to open)
         content.style.display = 'block';
-        toggleIcon.textContent = '▼';
         content.style.animation = 'slideDown 0.3s ease-out';
         // Show mode toggle button if we have related questions
         if (conversationStarted && relatedQuestions.length > 0) {
             modeToggleBtn.style.display = 'flex';
         }
     } else {
+        // Panel is currently visible, so we're closing it
+        const arrowIcon = document.getElementById('toggle-arrow-icon');
+        if (arrowIcon) arrowIcon.textContent = '▲'; // Set arrow to up when open (click to close)
         content.style.display = 'none';
-        toggleIcon.textContent = '▶';
         // Hide mode toggle button when panel is collapsed
         modeToggleBtn.style.display = 'none';
     }

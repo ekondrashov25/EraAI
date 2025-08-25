@@ -28,11 +28,14 @@
                         <span class="mode-toggle-text">Quick Actions</span>
                     </button>
                     <button class="toggle-btn" id="toggle-quick-actions" onclick="toggleQuickActions(event)">
-                        <span class="toggle-icon">▼</span>
+                        <span class="toggle-icon loading-icon" id="toggle-loading-icon" style="display: none;">
+                            <img src="img/quick_actions_loading.gif" alt="Loading..." width="16" height="16">
+                        </span>
+                        <span class="toggle-icon" id="toggle-arrow-icon">▲</span>
                     </button>
                 </div>
             </div>
-            <div class="quick-actions-content" id="quick-actions-content">
+            <div class="quick-actions-content" id="quick-actions-content" style="display: none;">
                 <div class="quick-actions-grid">
                     <button class="quick-action-btn" onclick="quickAction('Анализ тренда BTC')">
                         <div class="quick-action-icon" style="background: #10B981;">
