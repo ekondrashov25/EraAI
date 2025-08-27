@@ -289,6 +289,32 @@ body {
     margin-bottom: 0;
 }
 
+/* Link styles for markdown links */
+.message.assistant .message-content a {
+    color: #60A5FA;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+    transition: all 0.2s ease;
+    padding: 1px 2px;
+    border-radius: 3px;
+}
+
+.message.assistant .message-content a:hover {
+    color: #93C5FD;
+    border-bottom-color: rgba(147, 197, 253, 0.6);
+    background: rgba(96, 165, 250, 0.1);
+}
+
+.message.assistant .message-content a:active {
+    color: #3B82F6;
+    transform: translateY(1px);
+}
+
+/* Ensure links are visible in dark theme */
+.message.assistant .message-content a:visited {
+    color: #8B5CF6;
+}
+
 /* Special styles for greeting message */
 .greeting-message {
     margin: 20px 0 16px 0;

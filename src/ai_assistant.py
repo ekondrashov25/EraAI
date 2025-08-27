@@ -421,11 +421,29 @@ class AIAssistant:
 
     def _build_system_prompt(self) -> str:
         base = self.system_prompt or ""
+        
+        # Add Russian language enforcement
+        russian_instruction = """
+        ВАЖНО: ВСЕГДА отвечай на РУССКОМ ЯЗЫКЕ. Никогда не отвечай на английском языке.
+        Всегда используй русский язык для всех ответов, независимо от языка запроса пользователя.
+        
+        У ТЕБЯ ЕСТЬ ДОСТУП К ФУНКЦИЯМ ДЛЯ ПОЛУЧЕНИЯ АКТУАЛЬНЫХ ДАННЫХ О КРИПТОВАЛЮТАХ:
+        - get_coin_metrics() - получить метрики всех криптовалют
+        - get_coin_metrics_by_id(coin_id) - получить детальные данные конкретной криптовалюты
+        - get_coin_meta(coin_id) - получить информацию о проекте и ссылки
+        - get_topic_creators(topic) - получить топ-инфлюенсеров
+        - get_cryptocurrency_news() - получить последние новости
+        
+        ВСЕГДА ИСПОЛЬЗУЙ ЭТИ ФУНКЦИИ для получения актуальных данных о криптовалютах.
+        НЕ ГОВОРИ, что у тебя нет доступа к данным - у тебя есть функции для их получения!
+        """
+        
         # Suppress repetitive greetings on continued turns
         if len(self.conversation_history) >= 2:
-            suppress = "Do not greet or introduce yourself again; continue the conversation concisely."
-            return f"{base}\n\n{suppress}" if base else suppress
-        return base
+            suppress = "Не приветствуй и не представляйся снова; продолжай разговор кратко."
+            return f"{russian_instruction}\n{base}\n\n{suppress}" if base else f"{russian_instruction}\n{suppress}"
+        
+        return f"{russian_instruction}\n{base}" if base else russian_instruction
 
     def _update_summary(self, user: str, assistant: str) -> None:
         """Maintain a very concise rolling summary to carry context without large history."""

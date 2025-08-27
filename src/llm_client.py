@@ -67,7 +67,14 @@ class LLMClient:
                     "max_tokens": max_tokens,
                 }
                 if functions:
-                    params["functions"] = functions
+                    # Convert functions to tools format for newer API
+                    tools = []
+                    for func in functions:
+                        tools.append({
+                            "type": "function",
+                            "function": func
+                        })
+                    params["tools"] = tools
 
                 response = self.client.chat.completions.create(**params)
                 logger.info(f"Chat completion successful: {len(response.choices)} choices")
@@ -81,9 +88,21 @@ class LLMClient:
                     self._record_tokens(total_tokens_used)
                 except Exception:
                     pass
+                # Handle both old function_call and new tool_calls format
+                function_call = None
+                if hasattr(response.choices[0].message, 'function_call') and response.choices[0].message.function_call:
+                    function_call = response.choices[0].message.function_call
+                elif hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
+                    # Convert tool_calls to function_call format for compatibility
+                    tool_call = response.choices[0].message.tool_calls[0]
+                    function_call = type('FunctionCall', (), {
+                        'name': tool_call.function.name,
+                        'arguments': tool_call.function.arguments
+                    })()
+                
                 return {
                     "content": response.choices[0].message.content,
-                    "function_call": response.choices[0].message.function_call,
+                    "function_call": function_call,
                     "usage": response.usage.dict() if response.usage else None,
                     "model": response.model,
                     "id": response.id

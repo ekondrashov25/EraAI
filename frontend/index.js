@@ -63,6 +63,9 @@ function parseMarkdown(text) {
     text = text.replace(/^---$/gim, '<hr>');
     text = text.replace(/^\*\*\*$/gim, '<hr>');
     
+    // Handle links [text](url)
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
     // Handle lists - more robust handling
     let lines = text.split('\n');
     let inList = false;

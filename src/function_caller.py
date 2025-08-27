@@ -44,13 +44,10 @@ class FunctionCaller:
         """Register default functions that can be called."""
         self.register_function("get_coin_metrics", self._get_coin_metrics)
         self.register_function("get_coin_metrics_by_id", self._get_coin_metrics_by_id)
-        # self.register_function("get_coin_time_series", self._get_coin_time_series)
+        self.register_function("get_coin_meta", self._get_coin_meta)
+        self.register_function("get_topic_creators", self._get_topic_creators)
+        self.register_function("get_cryptocurrency_news", self._get_cryptocurrency_news)
 
-        # self.register_function("get_weather", self._get_weather)
-        # self.register_function("search_web", self._search_web)
-        # self.register_function("calculate", self._calculate)
-        # self.register_function("get_current_time", self._get_current_time)
-    
     def register_function(self, name: str, func: Callable):
         """Register a new function that can be called."""
         self.registered_functions[name] = func
@@ -61,7 +58,7 @@ class FunctionCaller:
         definitions = [
             {
                 "name": "get_coin_metrics",
-                "description": "Get current coin metrics for all coins, for example: get_coin_metrics()",
+                "description": "Получить текущие метрики всех криптовалют, включая цены, рыночную капитализацию, объем торгов и социальные метрики",
                 "parameters": {
                     "type": "object",
                     "properties": {}
@@ -69,34 +66,67 @@ class FunctionCaller:
             },
             {
                 "name": "get_coin_metrics_by_id",
-                "description": "Get current coin metrics by ID, for example: get_coin_metrics_by_id(coin_id='1')",
+                "description": "Получить детальные метрики конкретной криптовалюты по ID, включая цену, рыночные данные, предложение и метрики производительности",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "coin_id": {
                             "type": "string",
-                            "description": "Coin ID"
+                            "description": "Уникальный ID криптовалюты (например, '1' для Bitcoin, '2' для Ethereum)"
                         }
                     },
                     "required": ["coin_id"]
                 }
             },
-            
-        ]
-        
-        # Add custom registered functions
-        for name, func in self.registered_functions.items():
-            if name not in ["get_coin_metrics", "get_coin_metrics_by_id"]:
-                # For custom functions, create a basic definition
-                definitions.append({
-                    "name": name,
-                    "description": f"Custom function: {name}",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
+            {
+                "name": "get_coin_meta",
+                "description": "Получить комплексную метаинформацию о криптовалюте, включая описание, ссылки, блокчейн-сети и ресурсы разработки",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "coin_id": {
+                            "type": "string",
+                            "description": "Уникальный ID криптовалюты"
+                        }
+                    },
+                    "required": ["coin_id"]
+                }
+            },
+
+            {
+                "name": "get_topic_creators",
+                "description": "Получить топ-инфлюенсеров и создателей контента для конкретной криптовалюты с количеством подписчиков и метриками вовлеченности",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "topic": {
+                            "type": "string",
+                            "description": "Тема криптовалюты (например, 'bitcoin', 'ethereum')"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Количество создателей для возврата (по умолчанию: 3, максимум рекомендуется: 10)",
+                            "default": 3
+                        }
+                    },
+                    "required": ["topic"]
+                }
+            },
+            {
+                "name": "get_cryptocurrency_news",
+                "description": "Получить последние новости о криптовалютах с анализом настроений, метриками вовлеченности и информацией о создателях",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "limit": {
+                            "type": "integer",
+                            "description": "Количество новостных статей для возврата (по умолчанию: 3, максимум рекомендуется: 10)",
+                            "default": 3
+                        }
                     }
-                })
+                }
+            }
+        ]
         
         return definitions
     
@@ -112,6 +142,24 @@ class FunctionCaller:
             raise RuntimeError("LunarCrush client not initialized. Use async context manager.")
         return await self.lunarcrush_client.get_coin_metrics_by_id(coin_id)
     
+    async def _get_coin_meta(self, coin_id: str) -> Dict[str, Any]:
+        """Wrapper for get_coin_meta function."""
+        if not self.lunarcrush_client:
+            raise RuntimeError("LunarCrush client not initialized. Use async context manager.")
+        return await self.lunarcrush_client.get_coin_meta(coin_id)
+    
+    async def _get_topic_creators(self, topic: str, limit: int = 3) -> Dict[str, Any]:
+        """Wrapper for get_topic_creators function."""
+        if not self.lunarcrush_client:
+            raise RuntimeError("LunarCrush client not initialized. Use async context manager.")
+        return await self.lunarcrush_client.get_topic_creators(topic, limit)
+    
+    async def _get_cryptocurrency_news(self, limit: int = 3) -> Dict[str, Any]:
+        """Wrapper for get_cryptocurrency_news function."""
+        if not self.lunarcrush_client:
+            raise RuntimeError("LunarCrush client not initialized. Use async context manager.")
+        return await self.lunarcrush_client.get_cryptocurrency_news(limit)
+    
     async def execute_function_call(self, function_call: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute a function call based on LLM decision.
@@ -123,8 +171,13 @@ class FunctionCaller:
             Function execution result
         """
         try:
-            function_name = function_call.get("name")
-            arguments = function_call.get("arguments", "{}")
+            # Handle both old and new function call formats
+            if hasattr(function_call, 'name'):
+                function_name = function_call.name
+                arguments = function_call.arguments
+            else:
+                function_name = function_call.get("name")
+                arguments = function_call.get("arguments", "{}")
             
             if isinstance(arguments, str):
                 arguments = json.loads(arguments)
