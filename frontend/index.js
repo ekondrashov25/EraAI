@@ -10,6 +10,7 @@ let isShowingRelatedQuestions = false;
 let currentQuestionIndex = 0;
 let starterQuestions = [];
 let starterLoading = true;
+let quickActionsShown = false;
 
 // Smooth auto-scroll helpers
 const SCROLL_THROTTLE_MS = 120;
@@ -214,9 +215,56 @@ function showLoading() {
     // Create loading indicator dynamically
     const indicator = document.createElement('div');
     indicator.className = 'loading-indicator show';
-    indicator.innerHTML = `
-        <img src="img/model_generation.gif" alt="Loading..." class="loading-gif">
-    `;
+    
+    // Array of thinking messages
+    const thinkingMessages = [
+        "Модель думает над ответом",
+        "Ищем нужную информацию",
+        "Анализируем данные",
+        "Формируем ответ",
+        "Проверяем источники",
+        "Обрабатываем запрос"
+    ];
+    
+    let currentMessageIndex = 0;
+    
+    // Function to update the message with smooth transition
+    function updateMessage() {
+        const thinkingText = indicator.querySelector('.thinking-text');
+        if (thinkingText) {
+            // Fade out current text
+            thinkingText.style.opacity = '0';
+            thinkingText.style.transform = 'translateY(5px)';
+            
+            setTimeout(() => {
+                // Update text content
+                thinkingText.textContent = thinkingMessages[currentMessageIndex];
+                // Fade in new text
+                thinkingText.style.opacity = '1';
+                thinkingText.style.transform = 'translateY(0)';
+            }, 150);
+        } else {
+            // Initial render
+            indicator.innerHTML = `
+                <div class="thinking-message">
+                    <span class="thinking-text">${thinkingMessages[currentMessageIndex]}</span>
+                    <span class="thinking-dots">...</span>
+                </div>
+            `;
+        }
+        
+        // Move to next message
+        currentMessageIndex = (currentMessageIndex + 1) % thinkingMessages.length;
+    }
+    
+    // Show initial message
+    updateMessage();
+    
+    // Change message every 2 seconds
+    const messageInterval = setInterval(updateMessage, 2000);
+    
+    // Store interval ID to clear it later
+    indicator.dataset.intervalId = messageInterval;
     
     // Add to messages container
     messages.appendChild(indicator);
@@ -228,6 +276,10 @@ function showLoading() {
 function hideLoading() {
     const indicator = document.querySelector('.loading-indicator');
     if (indicator) {
+        // Clear the interval if it exists
+        if (indicator.dataset.intervalId) {
+            clearInterval(parseInt(indicator.dataset.intervalId));
+        }
         indicator.remove();
     }
 }
@@ -259,20 +311,52 @@ window.onload = async function() {
     
     // Fetch Quick Actions in the background
     starterLoading = true;
+    const startTime = Date.now();
+    console.log('Starting Quick Actions fetch at:', startTime);
+    
     try {
         const starters = await fetchQuickActions();
-        console.log('Quick Actions loaded:', starters);
+        const fetchTime = Date.now();
+        console.log('Quick Actions API response received at:', fetchTime, 'Duration:', fetchTime - startTime, 'ms');
+        
         if (starters && starters.length > 0) {
             starterQuestions = starters;
             console.log('Quick Actions set:', starterQuestions);
+            
+            // Set loading to false first
+            starterLoading = false;
+            
+            // Stop loading animation and show ready state
+            showQuickActions();
+            
+            // Update display to show the actual questions
+            updateQuickActionsDisplay();
+            
+            // Open panel smoothly after data is loaded and displayed
+            setTimeout(() => {
+                const openStart = Date.now();
+                autoOpenQuickActionsPanel();
+                const openEnd = Date.now();
+                console.log('Panel opening took:', openEnd - openStart, 'ms');
+            }, 100);
+            
+        } else {
+            // If no data received, still stop loading but keep panel closed
+            starterLoading = false;
+            showQuickActions();
+            console.log('No Quick Actions data received, keeping panel closed');
         }
     } catch (e) {
         console.error('Failed to load quick actions:', e);
-    } finally {
+        // Stop loading animation even on error
         starterLoading = false;
-        console.log('Quick Actions loading finished, starterLoading:', starterLoading);
-        // Update display after loading is complete
-        updateQuickActionsDisplay();
+        showQuickActions();
+    } finally {
+        const endTime = Date.now();
+        console.log('Quick Actions loading finished at:', endTime, 'Total duration:', endTime - startTime, 'ms');
+        
+        const finalTime = Date.now();
+        console.log('Total operation took:', finalTime - startTime, 'ms');
     }
     
     // Observe size changes to keep pinned to bottom during generation
@@ -446,11 +530,8 @@ async function showInitialGreeting() {
     if (input) {
         input.readOnly = true;
     }
-    showLoading();
-    // brief delay to emphasize the typing start
-    await new Promise(resolve => setTimeout(resolve, 600));
-    hideLoading();
-    // Simulate generation state for typing animation
+    
+    // Simulate generation state for typing animation without loading indicator
     isGenerating = true;
     setQuickActionsDisabled(true);
     await addMessage('assistant', greeting, true, 8, 'greeting-message');
@@ -466,6 +547,16 @@ async function showInitialGreeting() {
     }
 }
 
+// Function to clean question text by removing hyphens and extra spaces
+function cleanQuestionText(text) {
+    if (!text) return '';
+    return text
+        .replace(/^[-–—\s]+/, '') // Remove leading hyphens and spaces
+        .replace(/[-–—\s]+$/, '') // Remove trailing hyphens and spaces
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .trim();
+}
+
 function quickAction(action) {
     const input = document.getElementById('message-input');
     // Reset input to compact size before filling
@@ -474,7 +565,8 @@ function quickAction(action) {
     input.style.maxHeight = '160px';
     input.style.overflowY = 'hidden';
     input.style.overflowX = 'hidden';
-    input.value = action;
+    // Clean the action text before setting it
+    input.value = cleanQuestionText(action);
     sendMessage();
 }
 
@@ -493,7 +585,9 @@ async function fetchRelatedQuestions() {
         } else if (data.result && data.result.content) {
             const content = data.result.content[0];
             if (content.text === 'related_questions' || content.text === 'default_questions') {
-                return content.questions || [];
+                const questions = content.questions || [];
+                // Clean each question to remove hyphens and extra spaces
+                return questions.map(q => cleanQuestionText(q));
             }
         }
         
@@ -505,19 +599,32 @@ async function fetchRelatedQuestions() {
 }
 
 async function fetchQuickActions() {
+    const apiStart = Date.now();
+    console.log('API call started at:', apiStart);
+    
     try {
         const response = await fetch(`${API_BASE}/quick_actions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
+        const fetchEnd = Date.now();
+        console.log('Fetch completed at:', fetchEnd, 'Fetch duration:', fetchEnd - apiStart, 'ms');
+        
         const data = await response.json();
+        const parseEnd = Date.now();
+        console.log('JSON parsed at:', parseEnd, 'Parse duration:', parseEnd - fetchEnd, 'ms');
+        
         if (data.error) {
             console.error('Error fetching quick actions:', data.error);
             return null;
         } else if (data.result && data.result.content) {
             const content = data.result.content[0];
             if (content.text === 'quick_actions') {
-                return content.questions || [];
+                const finalTime = Date.now();
+                console.log('Quick Actions function completed at:', finalTime, 'Total API duration:', finalTime - apiStart, 'ms');
+                const questions = content.questions || [];
+                // Clean each question to remove hyphens and extra spaces
+                return questions.map(q => cleanQuestionText(q));
             }
         }
         return null;
@@ -534,6 +641,7 @@ function startQuickActionsLoading() {
     
     if (toggleBtn) {
         toggleBtn.classList.add('loading');
+        toggleBtn.disabled = true; // Disable the button during loading
     }
     
     if (loadingIcon) {
@@ -546,13 +654,24 @@ function startQuickActionsLoading() {
 }
 
 function showQuickActions() {
+    // Prevent multiple calls
+    if (quickActionsShown) {
+        return;
+    }
+    quickActionsShown = true;
+    
     const toggleBtn = document.getElementById('toggle-quick-actions');
     const loadingIcon = document.getElementById('toggle-loading-icon');
     const arrowIcon = document.getElementById('toggle-arrow-icon');
-    const quickActionsContent = document.getElementById('quick-actions-content');
     
     if (toggleBtn) {
         toggleBtn.classList.remove('loading');
+        toggleBtn.disabled = false; // Re-enable the button after loading
+        // Add a brief success state
+        toggleBtn.classList.add('loaded');
+        setTimeout(() => {
+            toggleBtn.classList.remove('loaded');
+        }, 500);
     }
     
     if (loadingIcon) {
@@ -561,14 +680,66 @@ function showQuickActions() {
     
     if (arrowIcon) {
         arrowIcon.style.display = 'inline';
+        // Add a smooth fade-in effect
+        arrowIcon.style.opacity = '0';
+        arrowIcon.style.transform = 'scale(0.8)';
+        setTimeout(() => {
+            arrowIcon.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            arrowIcon.style.opacity = '1';
+            arrowIcon.style.transform = 'scale(1)';
+        }, 50);
     }
+}
+
+
+
+function autoOpenQuickActionsPanel() {
+    const quickActionsContent = document.getElementById('quick-actions-content');
+    const arrowIcon = document.getElementById('toggle-arrow-icon');
     
-    // Keep content hidden by default - user must click to open
+    console.log('autoOpenQuickActionsPanel called');
+    console.log('quickActionsContent exists:', !!quickActionsContent);
+    console.log('starterLoading:', starterLoading);
+    console.log('starterQuestions length:', starterQuestions ? starterQuestions.length : 0);
+    
     if (quickActionsContent) {
-        quickActionsContent.style.display = 'none';
+        // Only auto-open if we have questions loaded and loading is complete
+        if (starterQuestions && starterQuestions.length > 0 && !starterLoading) {
+            // Add a small delay for better UX
+            setTimeout(() => {
+                // Open the panel automatically with smooth animation
+                console.log('Setting panel display to block');
+                quickActionsContent.style.setProperty('display', 'block', 'important');
+                quickActionsContent.style.animation = 'slideDownEnhanced 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                console.log('Panel display style is now:', quickActionsContent.style.display);
+                
+                // Update arrow to show panel is open (down arrow when open)
+                if (arrowIcon) {
+                    arrowIcon.textContent = '▼';
+                    arrowIcon.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    arrowIcon.style.transform = 'rotate(180deg)';
+                }
+                
+                // Add success state class for enhanced animation (shorter duration)
+                quickActionsContent.classList.add('loaded');
+                setTimeout(() => {
+                    quickActionsContent.classList.remove('loaded');
+                }, 300);
+                
+                console.log('Quick Actions panel auto-opened with', starterQuestions.length, 'questions');
+            }, 200); // Small delay for better visual flow
+        } else {
+            // Keep panel closed if no questions loaded or still loading
+            quickActionsContent.style.display = 'none';
+            if (arrowIcon) {
+                arrowIcon.textContent = '▲';
+                arrowIcon.style.transform = 'rotate(0deg)';
+            }
+            console.log('Quick Actions panel kept closed - no questions loaded or still loading');
+        }
+    } else {
+        console.log('quickActionsContent element not found');
     }
-    
-    updateQuickActionsDisplay();
 }
 
 function updateQuickActionsDisplay() {
@@ -644,7 +815,8 @@ function updateQuickActionsDisplay() {
         if (conversationStarted && relatedQuestions.length > 0) {
             modeToggleText.textContent = 'Show Related Questions';
         }
-        if (starterLoading) {
+        // Show loading placeholders while loading OR if no data received
+        if (starterLoading || !starterQuestions || starterQuestions.length === 0) {
             // Show 4 loading gifs as placeholders
             const items = [0,1,2,3].map(() => `
                 <div class="qa-loading-item"><img src="img/quick_actions_loading.gif" alt="Loading..." class="qa-loading-gif"></div>
@@ -652,12 +824,14 @@ function updateQuickActionsDisplay() {
             quickActionsContent.innerHTML = `<div class="qa-loading-grid">${items}</div>`;
             return;
         }
+        
+        // Show actual quick actions when data is loaded
         if (starterQuestions && starterQuestions.length > 0) {
             const icons = [
                 `<img src="img/graph.gif" alt="Graph" width="40" height="40">`,
                 `<img src="img/done.gif" alt="Done" width="40" height="40">`,
-                `<img src="img/light.gif" alt="Light" width="40" height="40">`,
-                `<img src="img/statera.gif" alt="Starters" width="40" height="40">`
+                `<img src="img/eyes.gif" alt="Eyes" width="40" height="40">`,
+                `<img src="img/target.gif" alt="Target" width="40" height="40">`
             ];
             const grid = starterQuestions.slice(0, 4).map((q, i) => `
                 <button class="quick-action-btn" onclick="quickAction('${q.replace(/'/g, "\\'")}')">
@@ -668,12 +842,6 @@ function updateQuickActionsDisplay() {
                 </button>
             `).join('');
             quickActionsContent.innerHTML = `<div class="quick-actions-grid">${grid}</div>`;
-        } else {
-            // If starters failed to load, keep showing loading placeholders so we never show static defaults
-            const items = [0,1,2,3].map(() => `
-                <div class="qa-loading-item"><img src="img/quick_actions_loading.gif" alt="Loading..." class="qa-loading-gif"></div>
-            `).join('');
-            quickActionsContent.innerHTML = `<div class="qa-loading-grid">${items}</div>`;
         }
     }
 }
@@ -851,9 +1019,9 @@ function toggleQuickActions(event) {
         event.stopPropagation();
     }
     
-    // Don't allow toggling while loading or generating
+    // Don't allow toggling while loading, generating, or disabled
     const toggleBtn = document.getElementById('toggle-quick-actions');
-    if (toggleBtn && (toggleBtn.classList.contains('loading') || isGenerating)) {
+    if (toggleBtn && (toggleBtn.classList.contains('loading') || toggleBtn.disabled || isGenerating)) {
         return;
     }
     
@@ -865,7 +1033,7 @@ function toggleQuickActions(event) {
     if (isHidden) {
         // Panel is currently hidden, so we're opening it
         const arrowIcon = document.getElementById('toggle-arrow-icon');
-        if (arrowIcon) arrowIcon.textContent = '▼'; // Set arrow to down when closed (click to open)
+        if (arrowIcon) arrowIcon.textContent = '▼'; // Set arrow to down when panel is open
         content.style.display = 'block';
         content.style.animation = 'slideDown 0.3s ease-out';
         // Show mode toggle button if we have related questions
@@ -875,7 +1043,7 @@ function toggleQuickActions(event) {
     } else {
         // Panel is currently visible, so we're closing it
         const arrowIcon = document.getElementById('toggle-arrow-icon');
-        if (arrowIcon) arrowIcon.textContent = '▲'; // Set arrow to up when open (click to close)
+        if (arrowIcon) arrowIcon.textContent = '▲'; // Set arrow to up when panel is closed
         content.style.display = 'none';
         // Hide mode toggle button when panel is collapsed
         modeToggleBtn.style.display = 'none';
